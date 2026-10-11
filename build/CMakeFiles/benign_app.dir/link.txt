@@ -1,0 +1,1 @@
+/usr/bin/c++ -Wl,--dependency-file=CMakeFiles/benign_app.dir/link.d CMakeFiles/benign_app.dir/test_programs/benign_app.cpp.o -o benign_app

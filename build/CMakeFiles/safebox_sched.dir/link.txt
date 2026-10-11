@@ -1,0 +1,1 @@
+/usr/bin/c++ -Wl,--dependency-file=CMakeFiles/safebox_sched.dir/link.d CMakeFiles/safebox_sched.dir/core/src/scheduler/scheduler_demo_main.cpp.o -o safebox_sched  libsafebox_scheduler_lib.a

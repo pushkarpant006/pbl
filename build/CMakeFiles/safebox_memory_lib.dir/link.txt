@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsafebox_memory_lib.a CMakeFiles/safebox_memory_lib.dir/core/src/memory/memory_tracker.cpp.o CMakeFiles/safebox_memory_lib.dir/core/src/memory/memory_anomaly_detector.cpp.o
+/usr/bin/ranlib libsafebox_memory_lib.a

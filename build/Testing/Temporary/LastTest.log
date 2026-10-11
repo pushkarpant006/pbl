@@ -1,0 +1,89 @@
+Start testing: Oct 10 13:58 UTC
+----------------------------------------------------------
+1/4 Testing: round_robin_test
+1/4 Test: round_robin_test
+Command: "/home/pushkar/safebox/build/round_robin_test"
+Directory: /home/pushkar/safebox/build
+"round_robin_test" start time: Oct 10 13:58 UTC
+Output:
+----------------------------------------------------------
+round_robin_test: ok
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"round_robin_test" end time: Oct 10 13:58 UTC
+"round_robin_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/4 Testing: scheduler_runner_test
+2/4 Test: scheduler_runner_test
+Command: "/home/pushkar/safebox/build/scheduler_runner_test"
+Directory: /home/pushkar/safebox/build
+"scheduler_runner_test" start time: Oct 10 13:58 UTC
+Output:
+----------------------------------------------------------
+cpu_burner pid=74709 starting target_ms=200
+cpu_burner pid=74710 starting target_ms=300
+cpu_burner pid=74709 finished used_cpu_ms=200
+cpu_burner pid=74710 finished used_cpu_ms=300
+Process 74709 finished: exit_status=0
+Process 74710 finished: exit_status=0
+
+Gantt trace
+PID | start_ms | end_ms | CPU_ms | timeline
+P74709 | 0 | 100 | 100 | [==========]
+P74710 | 100 | 201 | 101 | [==========]
+P74709 | 202 | 303 | 100 | [==========]
+P74710 | 303 | 404 | 100 | [==========]
+P74710 | 404 | 504 | 99 | [==========]
+
+Summary
+PID | arrival_ms | first_run_ms | finish_ms | CPU_ms | waiting_ms | turnaround_ms | response_ms | exit_status
+P74709 | 0 | 0 | 303 | 200 | 103 | 303 | 0 | 0 | slices=2
+P74710 | 0 | 100 | 504 | 301 | 203 | 504 | 100 | 0 | slices=3
+Context switches: 3
+Average waiting time: 153 ms
+Average turnaround time: 403 ms
+scheduler_runner_test: ok
+<end of output>
+Test time =   0.51 sec
+----------------------------------------------------------
+Test Passed.
+"scheduler_runner_test" end time: Oct 10 13:58 UTC
+"scheduler_runner_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+3/4 Testing: memory_anomaly_detector_test
+3/4 Test: memory_anomaly_detector_test
+Command: "/home/pushkar/safebox/build/memory_anomaly_detector_test"
+Directory: /home/pushkar/safebox/build
+"memory_anomaly_detector_test" start time: Oct 10 13:58 UTC
+Output:
+----------------------------------------------------------
+memory_anomaly_detector_test: ok
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"memory_anomaly_detector_test" end time: Oct 10 13:58 UTC
+"memory_anomaly_detector_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+4/4 Testing: memory_tracker_test
+4/4 Test: memory_tracker_test
+Command: "/home/pushkar/safebox/build/memory_tracker_test"
+Directory: /home/pushkar/safebox/build
+"memory_tracker_test" start time: Oct 10 13:58 UTC
+Output:
+----------------------------------------------------------
+memory_tracker_test: ok
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"memory_tracker_test" end time: Oct 10 13:58 UTC
+"memory_tracker_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Oct 10 13:58 UTC

@@ -1,0 +1,1 @@
+/usr/bin/c++ -Wl,--dependency-file=CMakeFiles/round_robin_test.dir/link.d CMakeFiles/round_robin_test.dir/core/tests/round_robin_test.cpp.o -o round_robin_test  libsafebox_scheduler_lib.a

@@ -1,0 +1,1 @@
+/usr/bin/c++ -Wl,--dependency-file=CMakeFiles/memory_tracker_test.dir/link.d CMakeFiles/memory_tracker_test.dir/core/tests/memory_tracker_test.cpp.o -o memory_tracker_test  libsafebox_memory_lib.a

@@ -1,0 +1,1 @@
+/usr/bin/c++ -Wl,--dependency-file=CMakeFiles/safebox_mem.dir/link.d CMakeFiles/safebox_mem.dir/core/src/memory/memory_monitor_main.cpp.o -o safebox_mem  libsafebox_memory_lib.a

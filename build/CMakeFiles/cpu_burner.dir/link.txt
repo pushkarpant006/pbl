@@ -1,0 +1,1 @@
+/usr/bin/c++ -Wl,--dependency-file=CMakeFiles/cpu_burner.dir/link.d CMakeFiles/cpu_burner.dir/test_programs/cpu_burner.cpp.o -o cpu_burner  -lpthread

@@ -1,0 +1,30 @@
+PID | elapsed_ms | RSS_MiB | VSIZE_MiB | minor_fault_delta | major_fault_delta | verdict | reason
+31338 | 0 | 0.01 | 0.01 | 0 | 0 | NORMAL | Startup warm-up: observed 0 s of 1 s; RSS is 0.0078125 MiB.
+benign_app pid=31338 holding 32 MiB stable
+31338 | 200 | 36.03 | 38.75 | 8326 | 0 | NORMAL | Startup warm-up: observed 0.200353 s of 1 s; RSS is 36.0273 MiB.
+31338 | 400 | 36.03 | 38.75 | 0 | 0 | NORMAL | Startup warm-up: observed 0.400651 s of 1 s; RSS is 36.0273 MiB.
+31338 | 601 | 36.03 | 38.75 | 0 | 0 | NORMAL | Startup warm-up: observed 0.600965 s of 1 s; RSS is 36.0273 MiB.
+31338 | 801 | 36.03 | 38.75 | 0 | 0 | NORMAL | Startup warm-up: observed 0.801403 s of 1 s; RSS is 36.0273 MiB.
+31338 | 1001 | 36.03 | 38.75 | 0 | 0 | NORMAL | RSS is 36.0273 MiB; no configured growth-rate threshold was met.
+31338 | 1202 | 36.03 | 38.75 | 0 | 0 | NORMAL | RSS is 36.0273 MiB; no configured growth-rate threshold was met.
+31338 | 1402 | 36.03 | 38.75 | 0 | 0 | NORMAL | RSS is 36.0273 MiB; no configured growth-rate threshold was met.
+31338 | 1602 | 36.03 | 38.75 | 0 | 0 | NORMAL | RSS is 36.0273 MiB; no configured growth-rate threshold was met.
+31338 | 1803 | 36.03 | 38.75 | 0 | 0 | NORMAL | RSS is 36.0273 MiB; no configured growth-rate threshold was met.
+31338 | 2003 | 36.03 | 38.75 | 0 | 0 | NORMAL | RSS is 36.0273 MiB; no configured growth-rate threshold was met.
+31338 | 2203 | 36.03 | 38.75 | 0 | 0 | NORMAL | RSS is 36.0273 MiB; no configured growth-rate threshold was met.
+31338 | 2404 | 36.03 | 38.75 | 0 | 0 | NORMAL | RSS is 36.0273 MiB; no configured growth-rate threshold was met.
+31338 | 2604 | 36.03 | 38.75 | 0 | 0 | NORMAL | RSS is 36.0273 MiB; no configured growth-rate threshold was met.
+31338 | 2804 | 36.03 | 38.75 | 0 | 0 | NORMAL | RSS is 36.0273 MiB; no configured growth-rate threshold was met.
+31338 | 3005 | 36.03 | 38.75 | 0 | 0 | NORMAL | RSS is 36.0273 MiB; no configured growth-rate threshold was met.
+31338 | 3205 | 36.03 | 38.75 | 0 | 0 | NORMAL | RSS is 36.0273 MiB; no configured growth-rate threshold was met.
+31338 | 3406 | 36.03 | 38.75 | 0 | 0 | NORMAL | RSS is 36.0273 MiB; no configured growth-rate threshold was met.
+31338 | 3606 | 36.03 | 38.75 | 0 | 0 | NORMAL | RSS is 36.0273 MiB; no configured growth-rate threshold was met.
+31338 | 3806 | 36.03 | 38.75 | 0 | 0 | NORMAL | RSS is 36.0273 MiB; no configured growth-rate threshold was met.
+31338 | 4006 | 36.03 | 38.75 | 0 | 0 | NORMAL | RSS is 36.0273 MiB; no configured growth-rate threshold was met.
+31338 | 4207 | 36.03 | 38.75 | 0 | 0 | NORMAL | RSS is 36.0273 MiB; no configured growth-rate threshold was met.
+31338 | 4407 | 36.03 | 38.75 | 0 | 0 | NORMAL | RSS is 36.0273 MiB; no configured growth-rate threshold was met.
+31338 | 4607 | 36.03 | 38.75 | 0 | 0 | NORMAL | RSS is 36.0273 MiB; no configured growth-rate threshold was met.
+31338 | 4808 | 36.03 | 38.75 | 0 | 0 | NORMAL | RSS is 36.0273 MiB; no configured growth-rate threshold was met.
+31338 | 5008 | 36.03 | 38.75 | 0 | 0 | NORMAL | RSS is 36.0273 MiB; no configured growth-rate threshold was met.
+benign_app pid=31338 finished
+Process 31338 exited normally with status 0 (reaped).

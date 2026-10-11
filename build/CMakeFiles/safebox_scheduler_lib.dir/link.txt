@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsafebox_scheduler_lib.a CMakeFiles/safebox_scheduler_lib.dir/core/src/scheduler/round_robin.cpp.o CMakeFiles/safebox_scheduler_lib.dir/core/src/scheduler/scheduler_metrics.cpp.o CMakeFiles/safebox_scheduler_lib.dir/core/src/scheduler/scheduler_runner.cpp.o
+/usr/bin/ranlib libsafebox_scheduler_lib.a

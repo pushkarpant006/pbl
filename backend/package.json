@@ -1,0 +1,17 @@
+{
+  "name": "safebox-web",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local SafeBox web UI and backend",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "multer": "^2.0.2"
+  }
+}

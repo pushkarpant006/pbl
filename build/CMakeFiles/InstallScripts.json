@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/pushkar/safebox/build/cmake_install.cmake"
+	],
+	"Parallel" : false
+}
