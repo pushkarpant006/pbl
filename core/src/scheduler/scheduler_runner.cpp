@@ -1,8 +1,3 @@
-// CONCEPT: Scheduler runner
-// WHY SAFEBOX NEEDS IT: A scheduling algorithm must be connected to real Linux
-// processes so SafeBox can resume, measure, and preempt actual work.
-// HOW IT WORKS: The runner resumes one child, watches its process CPU clock until
-// the assigned slice is used, then stops it or records its exit status.
 
 #include "scheduler_runner.hpp"
 
@@ -38,14 +33,12 @@ struct SliceOutcome {
     string error;
 };
 
-// Return elapsed scheduler time so each trace entry shares one zero point.
 long long elapsedMs(chrono::steady_clock::time_point start) {
     chrono::milliseconds elapsed =
         chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now() - start);
     return elapsed.count();
 }
 
-// Read a process CPU clock in nanoseconds for accurate slice accounting.
 bool readCpuTimeNs(clockid_t clock_id, long long& cpu_time_ns) {
     timespec time_value{};
     if (clock_gettime(clock_id, &time_value) != 0) {
@@ -55,7 +48,6 @@ bool readCpuTimeNs(clockid_t clock_id, long long& cpu_time_ns) {
     return true;
 }
 
-// Ask Linux for the child CPU clock and report errors before scheduling it.
 bool getProcessClock(pid_t pid, clockid_t& clock_id) {
     int error_number = clock_getcpuclockid(pid, &clock_id);
     if (error_number == 0) {
@@ -65,7 +57,6 @@ bool getProcessClock(pid_t pid, clockid_t& clock_id) {
     return false;
 }
 
-// Check for a child exit or stop, retrying waitpid when a signal interrupts it.
 bool collectChildStatus(pid_t pid, int& status, bool wait_for_status) {
     int options = WNOHANG;
     if (wait_for_status) {
@@ -89,7 +80,6 @@ bool collectChildStatus(pid_t pid, int& status, bool wait_for_status) {
     }
 }
 
-// Resume a stopped child so the kernel can give it CPU time.
 bool resumeProcess(pid_t pid, string& error) {
     if (kill(pid, SIGCONT) == 0) {
         return true;
@@ -98,7 +88,6 @@ bool resumeProcess(pid_t pid, string& error) {
     return false;
 }
 
-// Watch CPU usage until the requested amount is consumed or the child exits.
 bool waitForCpuSlice(pid_t pid, clockid_t cpu_clock, long slice_ms,
                      chrono::steady_clock::time_point start, SliceOutcome& outcome) {
     long long target_ns = static_cast<long long>(slice_ms) * 1000000LL;
@@ -123,7 +112,6 @@ bool waitForCpuSlice(pid_t pid, clockid_t cpu_clock, long slice_ms,
     return true;
 }
 
-// Freeze a child after its slice, then wait for Linux to confirm the stop.
 bool pauseAfterSlice(pid_t pid, int& status, string& error) {
     if (kill(pid, SIGSTOP) != 0) {
         error = string("SIGSTOP failed: ") + strerror(errno);
@@ -136,7 +124,6 @@ bool pauseAfterSlice(pid_t pid, int& status, string& error) {
     return true;
 }
 
-// Resume a child and save its CPU-clock reading immediately before the slice.
 bool beginSlice(pid_t pid, clockid_t& cpu_clock, SliceOutcome& outcome) {
     if (!getProcessClock(pid, cpu_clock)) {
         outcome.error = "could not read process CPU clock";
@@ -151,7 +138,6 @@ bool beginSlice(pid_t pid, clockid_t& cpu_clock, SliceOutcome& outcome) {
     return true;
 }
 
-// Store the result of waiting for SIGSTOP after the requested slice.
 void finishSlice(pid_t pid, clockid_t cpu_clock,
                  chrono::steady_clock::time_point start, SliceOutcome& outcome) {
     if (!pauseAfterSlice(pid, outcome.status, outcome.error)) {
@@ -167,7 +153,6 @@ void finishSlice(pid_t pid, clockid_t cpu_clock,
     outcome.end_ms = elapsedMs(start);
 }
 
-// Run one real process slice and save the CPU and wall-clock measurements.
 SliceOutcome executeSlice(pid_t pid, long slice_ms, chrono::steady_clock::time_point start) {
     SliceOutcome outcome{SLICE_FAILED, 0, 0, 0, 0, 0, ""};
     clockid_t cpu_clock{};
@@ -178,7 +163,6 @@ SliceOutcome executeSlice(pid_t pid, long slice_ms, chrono::steady_clock::time_p
     return outcome;
 }
 
-// Print and register a process exit before removing it from the ready queue.
 void reportProcessResult(pid_t pid, const SliceOutcome& outcome, SchedulerMetrics& metrics,
                          Scheduler& scheduler) {
     if (outcome.result == SLICE_EXITED) {
@@ -201,12 +185,10 @@ void reportProcessResult(pid_t pid, const SliceOutcome& outcome, SchedulerMetric
     scheduler.onProcessFinished(pid);
 }
 
-// Connect the supplied ready PIDs to the selected scheduling policy.
 SchedulerRunner::SchedulerRunner(Scheduler& scheduler, const vector<pid_t>& pids, long quantum_ms)
     : scheduler_(scheduler), pids_(pids), quantum_ms_(quantum_ms) {
 }
 
-// Give each ready process one measured slice, then print the collected results.
 void SchedulerRunner::run() {
     chrono::steady_clock::time_point scheduler_start = chrono::steady_clock::now();
     for (int index = 0; index < static_cast<int>(pids_.size()); index++) {
@@ -234,10 +216,8 @@ void SchedulerRunner::run() {
     metrics_.printSummary();
 }
 
-// Give tests read-only access to the run's recorded slices.
 const vector<SliceRecord>& SchedulerRunner::slices() const {
     return metrics_.slices();
 }
 
-}  // namespace scheduler
-}  // namespace safebox
+}}

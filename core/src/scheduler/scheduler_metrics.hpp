@@ -1,10 +1,3 @@
-// CONCEPT: Scheduler metrics
-// WHY SAFEBOX NEEDS IT: A scheduler is not just a queue; it must show whether it is
-// fair, responsive, and complete. SafeBox needs numbers that a team can present in a
-// viva or discuss in a report.
-// HOW IT WORKS: The metrics object records each quantum slice, then turns the raw
-// timeline into waiting, turnaround, response, and context-switch figures in a clear
-// table.
 
 #pragma once
 
@@ -37,21 +30,16 @@ struct ProcessMetrics {
 };
 
 struct SchedulerMetrics {
-    // Register one process's arrival relative to scheduler start.
     void addProcess(pid_t pid, long long arrival_ms);
-    // Store one measured CPU slice and update the process totals.
     void addSlice(pid_t pid, long quantum_ms, long long start_ms, long long end_ms,
                   long long cpu_before_ns, long long cpu_after_ns);
-    // Store the normal exit status and final CPU-clock reading.
     void markFinished(pid_t pid, long long finish_ms, int exit_status, long long final_cpu_ns);
-    // Record why a process could not complete normally.
     void markTerminated(pid_t pid, long long finish_ms, const std::string& reason);
-    // Print each slice as an elapsed-time bar.
     void printTrace() const;
-    // Print per-process timing, CPU, and context-switch totals.
     void printSummary() const;
-    // Expose recorded slices to tests without copying them.
     const std::vector<SliceRecord>& slices() const;
+    const std::vector<ProcessMetrics>& processes() const;
+    int contextSwitchCount() const;
 
 private:
     std::vector<SliceRecord> slices_;
@@ -59,5 +47,4 @@ private:
     std::vector<std::string> termination_reasons_;
 };
 
-}  // namespace scheduler
-}  // namespace safebox
+}}

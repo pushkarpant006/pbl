@@ -1,8 +1,3 @@
-// CONCEPT: Scheduler metrics
-// WHY SAFEBOX NEEDS IT: A visible timeline and process summary help explain whether
-// round robin shared the CPU and let each real child finish.
-// HOW IT WORKS: The metrics holder saves slice and process measurements in vectors,
-// then uses simple loops to print elapsed bars and timing totals.
 
 #include "scheduler_metrics.hpp"
 
@@ -14,7 +9,6 @@ using namespace std;
 namespace safebox {
 namespace scheduler {
 
-// Find one process record by PID, returning -1 when it is not registered.
 int findProcessIndex(const vector<ProcessMetrics>& processes, pid_t pid) {
     for (int index = 0; index < static_cast<int>(processes.size()); index++) {
         if (processes[index].pid == pid) {
@@ -24,7 +18,6 @@ int findProcessIndex(const vector<ProcessMetrics>& processes, pid_t pid) {
     return -1;
 }
 
-// Add a process record with its arrival time relative to scheduler start.
 void SchedulerMetrics::addProcess(pid_t pid, long long arrival_ms) {
     ProcessMetrics process{};
     process.pid = pid;
@@ -32,7 +25,6 @@ void SchedulerMetrics::addProcess(pid_t pid, long long arrival_ms) {
     processes_.push_back(process);
 }
 
-// Store one slice and update the process response and CPU-time measurements.
 void SchedulerMetrics::addSlice(pid_t pid, long quantum_ms, long long start_ms, long long end_ms,
                                 long long cpu_before_ns, long long cpu_after_ns) {
     SliceRecord slice{pid, quantum_ms, start_ms, end_ms, cpu_before_ns, cpu_after_ns};
@@ -52,7 +44,6 @@ void SchedulerMetrics::addSlice(pid_t pid, long quantum_ms, long long start_ms, 
     process.slices++;
 }
 
-// Record the normal exit time and final process CPU-clock reading.
 void SchedulerMetrics::markFinished(pid_t pid, long long finish_ms, int exit_status,
                                     long long final_cpu_ns) {
     int process_index = findProcessIndex(processes_, pid);
@@ -67,7 +58,6 @@ void SchedulerMetrics::markFinished(pid_t pid, long long finish_ms, int exit_sta
     }
 }
 
-// Save an abnormal process ending so it remains visible in the summary.
 void SchedulerMetrics::markTerminated(pid_t pid, long long finish_ms, const string& reason) {
     int process_index = findProcessIndex(processes_, pid);
     if (process_index >= 0) {
@@ -76,7 +66,6 @@ void SchedulerMetrics::markTerminated(pid_t pid, long long finish_ms, const stri
     termination_reasons_.push_back("P" + to_string(pid) + " " + reason);
 }
 
-// Print every time slice as a proportional bar on the elapsed-time line.
 void SchedulerMetrics::printTrace() const {
     cout << "\nGantt trace\nPID | start_ms | end_ms | CPU_ms | timeline\n";
     for (int index = 0; index < static_cast<int>(slices_.size()); index++) {
@@ -102,7 +91,6 @@ void SchedulerMetrics::printTrace() const {
     }
 }
 
-// Print one process row and return whether it completed normally.
 bool printProcessSummary(const ProcessMetrics& process, long long& waiting_total,
                         long long& turnaround_total) {
     long long cpu_ms = process.total_cpu_ns / 1000000;
@@ -141,7 +129,6 @@ bool printProcessSummary(const ProcessMetrics& process, long long& waiting_total
     return true;
 }
 
-// Print timing totals and the number of switches between different processes.
 void SchedulerMetrics::printSummary() const {
     cout << "\nSummary\nPID | arrival_ms | first_run_ms | finish_ms | CPU_ms | waiting_ms"
             " | turnaround_ms | response_ms | exit_status\n";
@@ -169,10 +156,20 @@ void SchedulerMetrics::printSummary() const {
     }
 }
 
-// Give tests read-only access to the recorded slice list.
 const vector<SliceRecord>& SchedulerMetrics::slices() const {
     return slices_;
 }
 
-}  // namespace scheduler
-}  // namespace safebox
+const vector<ProcessMetrics>& SchedulerMetrics::processes() const {
+    return processes_;
+}
+
+int SchedulerMetrics::contextSwitchCount() const {
+    int count = 0;
+    for (int index = 1; index < static_cast<int>(slices_.size()); index++) {
+        if (slices_[index - 1].pid != slices_[index].pid) count++;
+    }
+    return count;
+}
+
+}}

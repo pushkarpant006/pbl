@@ -1,8 +1,3 @@
-// CONCEPT: Real scheduler runner test
-// WHY SAFEBOX NEEDS IT: The runner must be checked against real stopped child
-// processes so signal control and CPU-clock sampling are tested together.
-// HOW IT WORKS: The test launches small touched CPU workloads, runs round robin,
-// then checks that every recorded slice has valid process and duration data.
 
 #include <csignal>
 #include <cstdlib>
@@ -17,7 +12,6 @@
 
 using namespace std;
 
-// Stop the test with a readable message when an invariant fails.
 void require(bool condition, const string& message) {
     if (condition) {
         return;
@@ -26,7 +20,6 @@ void require(bool condition, const string& message) {
     exit(1);
 }
 
-// Start one CPU burner stopped so the runner owns its first resume.
 bool launchStoppedBurner(long burst_ms, pid_t& process_id) {
     process_id = fork();
     if (process_id == -1) {
@@ -45,7 +38,6 @@ bool launchStoppedBurner(long burst_ms, pid_t& process_id) {
     return waitpid(process_id, &status, WUNTRACED) == process_id && WIFSTOPPED(status);
 }
 
-// Check real runner slices and verify both children completed through the runner.
 int main() {
     vector<long> bursts{200, 300};
     vector<pid_t> process_ids;

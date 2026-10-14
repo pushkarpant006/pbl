@@ -1,8 +1,3 @@
-// CONCEPT: Process memory sample
-// WHY SAFEBOX NEEDS IT: The tracker and detector need a shared representation of
-// measured process memory without mixing data collection with policy decisions.
-// HOW IT WORKS: A sample stores one monotonic timestamp, the observed process ID,
-// memory sizes in kilobytes, and cumulative page-fault counters.
 
 #pragma once
 
@@ -21,5 +16,4 @@ struct MemorySample {
     unsigned long major_faults{0};
 };
 
-}  // namespace memory
-}  // namespace safebox
+}}

@@ -1,5 +1,5 @@
-round_robin_test 48 5.53458e-05
-scheduler_runner_test 48 0.010581
-memory_anomaly_detector_test 42 6.3119e-05
-memory_tracker_test 45 6.88156e-05
+round_robin_test 54 3.77907e-05
+scheduler_runner_test 54 0.00939542
+memory_anomaly_detector_test 48 5.81042e-05
+memory_tracker_test 51 4.95333e-05
 ---

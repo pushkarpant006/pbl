@@ -1,8 +1,3 @@
-// CONCEPT: Rapid memory-allocation workload
-// WHY SAFEBOX NEEDS IT: A real process that touches memory lets the monitor measure
-// resident growth and exercise caller-selected limits without fake counters.
-// HOW IT WORKS: The program allocates 2 MiB chunks, writes to every page, and waits
-// briefly between chunks until it reaches the requested target size.
 
 #include <chrono>
 #include <iostream>
@@ -17,7 +12,6 @@ const long DEFAULT_TARGET_MB = 16;
 const long MAX_TARGET_MB = 512;
 const int CHUNK_BYTES = 2 * 1024 * 1024;
 
-// Touch one byte on every page so Linux makes the allocation resident.
 bool touchPages(vector<char>& memory) {
     long page_size = sysconf(_SC_PAGESIZE);
     if (page_size <= 0) {
@@ -30,7 +24,6 @@ bool touchPages(vector<char>& memory) {
     return true;
 }
 
-// Parse the optional target and force flag from command-line arguments.
 bool parseArguments(int argc, char** argv, long& target_mb, bool& force) {
     target_mb = DEFAULT_TARGET_MB;
     force = false;
@@ -58,7 +51,6 @@ bool parseArguments(int argc, char** argv, long& target_mb, bool& force) {
     return true;
 }
 
-// Allocate and retain touched chunks until the requested target has been reached.
 bool allocateToTarget(long target_mb) {
     long target_bytes = target_mb * 1024 * 1024;
     long allocated_bytes = 0;
@@ -79,7 +71,6 @@ bool allocateToTarget(long target_mb) {
     return true;
 }
 
-// Validate the target and run the harmless touched-memory workload.
 int main(int argc, char** argv) {
     long target_mb = 0;
     bool force = false;

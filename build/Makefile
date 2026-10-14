@@ -127,6 +127,84 @@ depend:
 .PHONY : depend
 
 #=============================================================================
+# Target rules for targets named safebox_process_lib
+
+# Build rule for target.
+safebox_process_lib: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 safebox_process_lib
+.PHONY : safebox_process_lib
+
+# fast build rule for target.
+safebox_process_lib/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/safebox_process_lib.dir/build.make CMakeFiles/safebox_process_lib.dir/build
+.PHONY : safebox_process_lib/fast
+
+#=============================================================================
+# Target rules for targets named safebox_banker
+
+# Build rule for target.
+safebox_banker: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 safebox_banker
+.PHONY : safebox_banker
+
+# fast build rule for target.
+safebox_banker/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/safebox_banker.dir/build.make CMakeFiles/safebox_banker.dir/build
+.PHONY : safebox_banker/fast
+
+#=============================================================================
+# Target rules for targets named safebox_analyze
+
+# Build rule for target.
+safebox_analyze: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 safebox_analyze
+.PHONY : safebox_analyze
+
+# fast build rule for target.
+safebox_analyze/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/safebox_analyze.dir/build.make CMakeFiles/safebox_analyze.dir/build
+.PHONY : safebox_analyze/fast
+
+#=============================================================================
+# Target rules for targets named fork_tree
+
+# Build rule for target.
+fork_tree: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 fork_tree
+.PHONY : fork_tree
+
+# fast build rule for target.
+fork_tree/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fork_tree.dir/build.make CMakeFiles/fork_tree.dir/build
+.PHONY : fork_tree/fast
+
+#=============================================================================
+# Target rules for targets named bounded_process_load
+
+# Build rule for target.
+bounded_process_load: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 bounded_process_load
+.PHONY : bounded_process_load
+
+# fast build rule for target.
+bounded_process_load/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/bounded_process_load.dir/build.make CMakeFiles/bounded_process_load.dir/build
+.PHONY : bounded_process_load/fast
+
+#=============================================================================
+# Target rules for targets named bounded_cpu_load
+
+# Build rule for target.
+bounded_cpu_load: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 bounded_cpu_load
+.PHONY : bounded_cpu_load
+
+# fast build rule for target.
+bounded_cpu_load/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/bounded_cpu_load.dir/build.make CMakeFiles/bounded_cpu_load.dir/build
+.PHONY : bounded_cpu_load/fast
+
+#=============================================================================
 # Target rules for targets named safebox_scheduler_lib
 
 # Build rule for target.
@@ -281,6 +359,246 @@ memory_tracker_test: cmake_check_build_system
 memory_tracker_test/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/memory_tracker_test.dir/build.make CMakeFiles/memory_tracker_test.dir/build
 .PHONY : memory_tracker_test/fast
+
+core/src/analyzer/analyzer_main.o: core/src/analyzer/analyzer_main.cpp.o
+.PHONY : core/src/analyzer/analyzer_main.o
+
+# target to build an object file
+core/src/analyzer/analyzer_main.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/safebox_analyze.dir/build.make CMakeFiles/safebox_analyze.dir/core/src/analyzer/analyzer_main.cpp.o
+.PHONY : core/src/analyzer/analyzer_main.cpp.o
+
+core/src/analyzer/analyzer_main.i: core/src/analyzer/analyzer_main.cpp.i
+.PHONY : core/src/analyzer/analyzer_main.i
+
+# target to preprocess a source file
+core/src/analyzer/analyzer_main.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/safebox_analyze.dir/build.make CMakeFiles/safebox_analyze.dir/core/src/analyzer/analyzer_main.cpp.i
+.PHONY : core/src/analyzer/analyzer_main.cpp.i
+
+core/src/analyzer/analyzer_main.s: core/src/analyzer/analyzer_main.cpp.s
+.PHONY : core/src/analyzer/analyzer_main.s
+
+# target to generate assembly for a file
+core/src/analyzer/analyzer_main.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/safebox_analyze.dir/build.make CMakeFiles/safebox_analyze.dir/core/src/analyzer/analyzer_main.cpp.s
+.PHONY : core/src/analyzer/analyzer_main.cpp.s
+
+core/src/analyzer/findings_builder.o: core/src/analyzer/findings_builder.cpp.o
+.PHONY : core/src/analyzer/findings_builder.o
+
+# target to build an object file
+core/src/analyzer/findings_builder.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/safebox_analyze.dir/build.make CMakeFiles/safebox_analyze.dir/core/src/analyzer/findings_builder.cpp.o
+.PHONY : core/src/analyzer/findings_builder.cpp.o
+
+core/src/analyzer/findings_builder.i: core/src/analyzer/findings_builder.cpp.i
+.PHONY : core/src/analyzer/findings_builder.i
+
+# target to preprocess a source file
+core/src/analyzer/findings_builder.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/safebox_analyze.dir/build.make CMakeFiles/safebox_analyze.dir/core/src/analyzer/findings_builder.cpp.i
+.PHONY : core/src/analyzer/findings_builder.cpp.i
+
+core/src/analyzer/findings_builder.s: core/src/analyzer/findings_builder.cpp.s
+.PHONY : core/src/analyzer/findings_builder.s
+
+# target to generate assembly for a file
+core/src/analyzer/findings_builder.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/safebox_analyze.dir/build.make CMakeFiles/safebox_analyze.dir/core/src/analyzer/findings_builder.cpp.s
+.PHONY : core/src/analyzer/findings_builder.cpp.s
+
+core/src/analyzer/json_writer.o: core/src/analyzer/json_writer.cpp.o
+.PHONY : core/src/analyzer/json_writer.o
+
+# target to build an object file
+core/src/analyzer/json_writer.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/safebox_analyze.dir/build.make CMakeFiles/safebox_analyze.dir/core/src/analyzer/json_writer.cpp.o
+.PHONY : core/src/analyzer/json_writer.cpp.o
+
+core/src/analyzer/json_writer.i: core/src/analyzer/json_writer.cpp.i
+.PHONY : core/src/analyzer/json_writer.i
+
+# target to preprocess a source file
+core/src/analyzer/json_writer.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/safebox_analyze.dir/build.make CMakeFiles/safebox_analyze.dir/core/src/analyzer/json_writer.cpp.i
+.PHONY : core/src/analyzer/json_writer.cpp.i
+
+core/src/analyzer/json_writer.s: core/src/analyzer/json_writer.cpp.s
+.PHONY : core/src/analyzer/json_writer.s
+
+# target to generate assembly for a file
+core/src/analyzer/json_writer.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/safebox_analyze.dir/build.make CMakeFiles/safebox_analyze.dir/core/src/analyzer/json_writer.cpp.s
+.PHONY : core/src/analyzer/json_writer.cpp.s
+
+core/src/controller/proc_reader.o: core/src/controller/proc_reader.cpp.o
+.PHONY : core/src/controller/proc_reader.o
+
+# target to build an object file
+core/src/controller/proc_reader.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/safebox_process_lib.dir/build.make CMakeFiles/safebox_process_lib.dir/core/src/controller/proc_reader.cpp.o
+.PHONY : core/src/controller/proc_reader.cpp.o
+
+core/src/controller/proc_reader.i: core/src/controller/proc_reader.cpp.i
+.PHONY : core/src/controller/proc_reader.i
+
+# target to preprocess a source file
+core/src/controller/proc_reader.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/safebox_process_lib.dir/build.make CMakeFiles/safebox_process_lib.dir/core/src/controller/proc_reader.cpp.i
+.PHONY : core/src/controller/proc_reader.cpp.i
+
+core/src/controller/proc_reader.s: core/src/controller/proc_reader.cpp.s
+.PHONY : core/src/controller/proc_reader.s
+
+# target to generate assembly for a file
+core/src/controller/proc_reader.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/safebox_process_lib.dir/build.make CMakeFiles/safebox_process_lib.dir/core/src/controller/proc_reader.cpp.s
+.PHONY : core/src/controller/proc_reader.cpp.s
+
+core/src/controller/process_control.o: core/src/controller/process_control.cpp.o
+.PHONY : core/src/controller/process_control.o
+
+# target to build an object file
+core/src/controller/process_control.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/safebox_process_lib.dir/build.make CMakeFiles/safebox_process_lib.dir/core/src/controller/process_control.cpp.o
+.PHONY : core/src/controller/process_control.cpp.o
+
+core/src/controller/process_control.i: core/src/controller/process_control.cpp.i
+.PHONY : core/src/controller/process_control.i
+
+# target to preprocess a source file
+core/src/controller/process_control.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/safebox_process_lib.dir/build.make CMakeFiles/safebox_process_lib.dir/core/src/controller/process_control.cpp.i
+.PHONY : core/src/controller/process_control.cpp.i
+
+core/src/controller/process_control.s: core/src/controller/process_control.cpp.s
+.PHONY : core/src/controller/process_control.s
+
+# target to generate assembly for a file
+core/src/controller/process_control.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/safebox_process_lib.dir/build.make CMakeFiles/safebox_process_lib.dir/core/src/controller/process_control.cpp.s
+.PHONY : core/src/controller/process_control.cpp.s
+
+core/src/controller/process_launcher.o: core/src/controller/process_launcher.cpp.o
+.PHONY : core/src/controller/process_launcher.o
+
+# target to build an object file
+core/src/controller/process_launcher.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/safebox_process_lib.dir/build.make CMakeFiles/safebox_process_lib.dir/core/src/controller/process_launcher.cpp.o
+.PHONY : core/src/controller/process_launcher.cpp.o
+
+core/src/controller/process_launcher.i: core/src/controller/process_launcher.cpp.i
+.PHONY : core/src/controller/process_launcher.i
+
+# target to preprocess a source file
+core/src/controller/process_launcher.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/safebox_process_lib.dir/build.make CMakeFiles/safebox_process_lib.dir/core/src/controller/process_launcher.cpp.i
+.PHONY : core/src/controller/process_launcher.cpp.i
+
+core/src/controller/process_launcher.s: core/src/controller/process_launcher.cpp.s
+.PHONY : core/src/controller/process_launcher.s
+
+# target to generate assembly for a file
+core/src/controller/process_launcher.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/safebox_process_lib.dir/build.make CMakeFiles/safebox_process_lib.dir/core/src/controller/process_launcher.cpp.s
+.PHONY : core/src/controller/process_launcher.cpp.s
+
+core/src/controller/process_table.o: core/src/controller/process_table.cpp.o
+.PHONY : core/src/controller/process_table.o
+
+# target to build an object file
+core/src/controller/process_table.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/safebox_process_lib.dir/build.make CMakeFiles/safebox_process_lib.dir/core/src/controller/process_table.cpp.o
+.PHONY : core/src/controller/process_table.cpp.o
+
+core/src/controller/process_table.i: core/src/controller/process_table.cpp.i
+.PHONY : core/src/controller/process_table.i
+
+# target to preprocess a source file
+core/src/controller/process_table.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/safebox_process_lib.dir/build.make CMakeFiles/safebox_process_lib.dir/core/src/controller/process_table.cpp.i
+.PHONY : core/src/controller/process_table.cpp.i
+
+core/src/controller/process_table.s: core/src/controller/process_table.cpp.s
+.PHONY : core/src/controller/process_table.s
+
+# target to generate assembly for a file
+core/src/controller/process_table.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/safebox_process_lib.dir/build.make CMakeFiles/safebox_process_lib.dir/core/src/controller/process_table.cpp.s
+.PHONY : core/src/controller/process_table.cpp.s
+
+core/src/controller/process_tree.o: core/src/controller/process_tree.cpp.o
+.PHONY : core/src/controller/process_tree.o
+
+# target to build an object file
+core/src/controller/process_tree.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/safebox_process_lib.dir/build.make CMakeFiles/safebox_process_lib.dir/core/src/controller/process_tree.cpp.o
+.PHONY : core/src/controller/process_tree.cpp.o
+
+core/src/controller/process_tree.i: core/src/controller/process_tree.cpp.i
+.PHONY : core/src/controller/process_tree.i
+
+# target to preprocess a source file
+core/src/controller/process_tree.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/safebox_process_lib.dir/build.make CMakeFiles/safebox_process_lib.dir/core/src/controller/process_tree.cpp.i
+.PHONY : core/src/controller/process_tree.cpp.i
+
+core/src/controller/process_tree.s: core/src/controller/process_tree.cpp.s
+.PHONY : core/src/controller/process_tree.s
+
+# target to generate assembly for a file
+core/src/controller/process_tree.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/safebox_process_lib.dir/build.make CMakeFiles/safebox_process_lib.dir/core/src/controller/process_tree.cpp.s
+.PHONY : core/src/controller/process_tree.cpp.s
+
+core/src/deadlock/bankers_algorithm.o: core/src/deadlock/bankers_algorithm.cpp.o
+.PHONY : core/src/deadlock/bankers_algorithm.o
+
+# target to build an object file
+core/src/deadlock/bankers_algorithm.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/safebox_banker.dir/build.make CMakeFiles/safebox_banker.dir/core/src/deadlock/bankers_algorithm.cpp.o
+.PHONY : core/src/deadlock/bankers_algorithm.cpp.o
+
+core/src/deadlock/bankers_algorithm.i: core/src/deadlock/bankers_algorithm.cpp.i
+.PHONY : core/src/deadlock/bankers_algorithm.i
+
+# target to preprocess a source file
+core/src/deadlock/bankers_algorithm.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/safebox_banker.dir/build.make CMakeFiles/safebox_banker.dir/core/src/deadlock/bankers_algorithm.cpp.i
+.PHONY : core/src/deadlock/bankers_algorithm.cpp.i
+
+core/src/deadlock/bankers_algorithm.s: core/src/deadlock/bankers_algorithm.cpp.s
+.PHONY : core/src/deadlock/bankers_algorithm.s
+
+# target to generate assembly for a file
+core/src/deadlock/bankers_algorithm.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/safebox_banker.dir/build.make CMakeFiles/safebox_banker.dir/core/src/deadlock/bankers_algorithm.cpp.s
+.PHONY : core/src/deadlock/bankers_algorithm.cpp.s
+
+core/src/deadlock/bankers_main.o: core/src/deadlock/bankers_main.cpp.o
+.PHONY : core/src/deadlock/bankers_main.o
+
+# target to build an object file
+core/src/deadlock/bankers_main.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/safebox_banker.dir/build.make CMakeFiles/safebox_banker.dir/core/src/deadlock/bankers_main.cpp.o
+.PHONY : core/src/deadlock/bankers_main.cpp.o
+
+core/src/deadlock/bankers_main.i: core/src/deadlock/bankers_main.cpp.i
+.PHONY : core/src/deadlock/bankers_main.i
+
+# target to preprocess a source file
+core/src/deadlock/bankers_main.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/safebox_banker.dir/build.make CMakeFiles/safebox_banker.dir/core/src/deadlock/bankers_main.cpp.i
+.PHONY : core/src/deadlock/bankers_main.cpp.i
+
+core/src/deadlock/bankers_main.s: core/src/deadlock/bankers_main.cpp.s
+.PHONY : core/src/deadlock/bankers_main.s
+
+# target to generate assembly for a file
+core/src/deadlock/bankers_main.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/safebox_banker.dir/build.make CMakeFiles/safebox_banker.dir/core/src/deadlock/bankers_main.cpp.s
+.PHONY : core/src/deadlock/bankers_main.cpp.s
 
 core/src/memory/memory_anomaly_detector.o: core/src/memory/memory_anomaly_detector.cpp.o
 .PHONY : core/src/memory/memory_anomaly_detector.o
@@ -570,6 +888,54 @@ test_programs/benign_app.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/benign_app.dir/build.make CMakeFiles/benign_app.dir/test_programs/benign_app.cpp.s
 .PHONY : test_programs/benign_app.cpp.s
 
+test_programs/bounded_cpu_load.o: test_programs/bounded_cpu_load.cpp.o
+.PHONY : test_programs/bounded_cpu_load.o
+
+# target to build an object file
+test_programs/bounded_cpu_load.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/bounded_cpu_load.dir/build.make CMakeFiles/bounded_cpu_load.dir/test_programs/bounded_cpu_load.cpp.o
+.PHONY : test_programs/bounded_cpu_load.cpp.o
+
+test_programs/bounded_cpu_load.i: test_programs/bounded_cpu_load.cpp.i
+.PHONY : test_programs/bounded_cpu_load.i
+
+# target to preprocess a source file
+test_programs/bounded_cpu_load.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/bounded_cpu_load.dir/build.make CMakeFiles/bounded_cpu_load.dir/test_programs/bounded_cpu_load.cpp.i
+.PHONY : test_programs/bounded_cpu_load.cpp.i
+
+test_programs/bounded_cpu_load.s: test_programs/bounded_cpu_load.cpp.s
+.PHONY : test_programs/bounded_cpu_load.s
+
+# target to generate assembly for a file
+test_programs/bounded_cpu_load.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/bounded_cpu_load.dir/build.make CMakeFiles/bounded_cpu_load.dir/test_programs/bounded_cpu_load.cpp.s
+.PHONY : test_programs/bounded_cpu_load.cpp.s
+
+test_programs/bounded_process_load.o: test_programs/bounded_process_load.cpp.o
+.PHONY : test_programs/bounded_process_load.o
+
+# target to build an object file
+test_programs/bounded_process_load.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/bounded_process_load.dir/build.make CMakeFiles/bounded_process_load.dir/test_programs/bounded_process_load.cpp.o
+.PHONY : test_programs/bounded_process_load.cpp.o
+
+test_programs/bounded_process_load.i: test_programs/bounded_process_load.cpp.i
+.PHONY : test_programs/bounded_process_load.i
+
+# target to preprocess a source file
+test_programs/bounded_process_load.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/bounded_process_load.dir/build.make CMakeFiles/bounded_process_load.dir/test_programs/bounded_process_load.cpp.i
+.PHONY : test_programs/bounded_process_load.cpp.i
+
+test_programs/bounded_process_load.s: test_programs/bounded_process_load.cpp.s
+.PHONY : test_programs/bounded_process_load.s
+
+# target to generate assembly for a file
+test_programs/bounded_process_load.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/bounded_process_load.dir/build.make CMakeFiles/bounded_process_load.dir/test_programs/bounded_process_load.cpp.s
+.PHONY : test_programs/bounded_process_load.cpp.s
+
 test_programs/cpu_burner.o: test_programs/cpu_burner.cpp.o
 .PHONY : test_programs/cpu_burner.o
 
@@ -593,6 +959,30 @@ test_programs/cpu_burner.s: test_programs/cpu_burner.cpp.s
 test_programs/cpu_burner.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/cpu_burner.dir/build.make CMakeFiles/cpu_burner.dir/test_programs/cpu_burner.cpp.s
 .PHONY : test_programs/cpu_burner.cpp.s
+
+test_programs/fork_tree.o: test_programs/fork_tree.cpp.o
+.PHONY : test_programs/fork_tree.o
+
+# target to build an object file
+test_programs/fork_tree.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fork_tree.dir/build.make CMakeFiles/fork_tree.dir/test_programs/fork_tree.cpp.o
+.PHONY : test_programs/fork_tree.cpp.o
+
+test_programs/fork_tree.i: test_programs/fork_tree.cpp.i
+.PHONY : test_programs/fork_tree.i
+
+# target to preprocess a source file
+test_programs/fork_tree.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fork_tree.dir/build.make CMakeFiles/fork_tree.dir/test_programs/fork_tree.cpp.i
+.PHONY : test_programs/fork_tree.cpp.i
+
+test_programs/fork_tree.s: test_programs/fork_tree.cpp.s
+.PHONY : test_programs/fork_tree.s
+
+# target to generate assembly for a file
+test_programs/fork_tree.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fork_tree.dir/build.make CMakeFiles/fork_tree.dir/test_programs/fork_tree.cpp.s
+.PHONY : test_programs/fork_tree.cpp.s
 
 test_programs/memory_hog.o: test_programs/memory_hog.cpp.o
 .PHONY : test_programs/memory_hog.o
@@ -652,17 +1042,53 @@ help:
 	@echo "... rebuild_cache"
 	@echo "... test"
 	@echo "... benign_app"
+	@echo "... bounded_cpu_load"
+	@echo "... bounded_process_load"
 	@echo "... cpu_burner"
+	@echo "... fork_tree"
 	@echo "... memory_anomaly_detector_test"
 	@echo "... memory_hog"
 	@echo "... memory_leak"
 	@echo "... memory_tracker_test"
 	@echo "... round_robin_test"
+	@echo "... safebox_analyze"
+	@echo "... safebox_banker"
 	@echo "... safebox_mem"
 	@echo "... safebox_memory_lib"
+	@echo "... safebox_process_lib"
 	@echo "... safebox_sched"
 	@echo "... safebox_scheduler_lib"
 	@echo "... scheduler_runner_test"
+	@echo "... core/src/analyzer/analyzer_main.o"
+	@echo "... core/src/analyzer/analyzer_main.i"
+	@echo "... core/src/analyzer/analyzer_main.s"
+	@echo "... core/src/analyzer/findings_builder.o"
+	@echo "... core/src/analyzer/findings_builder.i"
+	@echo "... core/src/analyzer/findings_builder.s"
+	@echo "... core/src/analyzer/json_writer.o"
+	@echo "... core/src/analyzer/json_writer.i"
+	@echo "... core/src/analyzer/json_writer.s"
+	@echo "... core/src/controller/proc_reader.o"
+	@echo "... core/src/controller/proc_reader.i"
+	@echo "... core/src/controller/proc_reader.s"
+	@echo "... core/src/controller/process_control.o"
+	@echo "... core/src/controller/process_control.i"
+	@echo "... core/src/controller/process_control.s"
+	@echo "... core/src/controller/process_launcher.o"
+	@echo "... core/src/controller/process_launcher.i"
+	@echo "... core/src/controller/process_launcher.s"
+	@echo "... core/src/controller/process_table.o"
+	@echo "... core/src/controller/process_table.i"
+	@echo "... core/src/controller/process_table.s"
+	@echo "... core/src/controller/process_tree.o"
+	@echo "... core/src/controller/process_tree.i"
+	@echo "... core/src/controller/process_tree.s"
+	@echo "... core/src/deadlock/bankers_algorithm.o"
+	@echo "... core/src/deadlock/bankers_algorithm.i"
+	@echo "... core/src/deadlock/bankers_algorithm.s"
+	@echo "... core/src/deadlock/bankers_main.o"
+	@echo "... core/src/deadlock/bankers_main.i"
+	@echo "... core/src/deadlock/bankers_main.s"
 	@echo "... core/src/memory/memory_anomaly_detector.o"
 	@echo "... core/src/memory/memory_anomaly_detector.i"
 	@echo "... core/src/memory/memory_anomaly_detector.s"
@@ -699,9 +1125,18 @@ help:
 	@echo "... test_programs/benign_app.o"
 	@echo "... test_programs/benign_app.i"
 	@echo "... test_programs/benign_app.s"
+	@echo "... test_programs/bounded_cpu_load.o"
+	@echo "... test_programs/bounded_cpu_load.i"
+	@echo "... test_programs/bounded_cpu_load.s"
+	@echo "... test_programs/bounded_process_load.o"
+	@echo "... test_programs/bounded_process_load.i"
+	@echo "... test_programs/bounded_process_load.s"
 	@echo "... test_programs/cpu_burner.o"
 	@echo "... test_programs/cpu_burner.i"
 	@echo "... test_programs/cpu_burner.s"
+	@echo "... test_programs/fork_tree.o"
+	@echo "... test_programs/fork_tree.i"
+	@echo "... test_programs/fork_tree.s"
 	@echo "... test_programs/memory_hog.o"
 	@echo "... test_programs/memory_hog.i"
 	@echo "... test_programs/memory_hog.s"

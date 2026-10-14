@@ -1,0 +1,1 @@
+/usr/bin/c++ -Wl,--dependency-file=CMakeFiles/safebox_analyze.dir/link.d CMakeFiles/safebox_analyze.dir/core/src/analyzer/analyzer_main.cpp.o CMakeFiles/safebox_analyze.dir/core/src/analyzer/findings_builder.cpp.o CMakeFiles/safebox_analyze.dir/core/src/analyzer/json_writer.cpp.o -o safebox_analyze  libsafebox_process_lib.a libsafebox_scheduler_lib.a

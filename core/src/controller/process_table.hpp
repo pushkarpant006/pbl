@@ -1,49 +1,52 @@
-// CONCEPT: Process control block (PCB)
-// WHY SAFEBOX NEEDS IT: The scheduler and controller must both refer to the same
-// process identity and lifecycle state without duplicating rules in each module. The
-// PCB is the shared contract for process ownership, CPU accounting, and state
-// transitions in a Linux sandbox.
-// HOW IT WORKS: The controller owns the PCB definition and exposes a small, stable
-// set of fields. The scheduler reads these fields to decide who runs next, but it
-// does not store its own queue state inside the PCB.
 
-#ifndef SAFEBOX_PROCESS_TABLE_HPP
-#define SAFEBOX_PROCESS_TABLE_HPP
+#pragma once
 
 #include <chrono>
 #include <optional>
+#include <string>
 #include <sys/types.h>
+#include <vector>
 
 namespace safebox {
 namespace controller {
 
 enum class ProcessState {
     NEW,
-    // READY means the process is waiting for CPU, including a process that was
-    // temporarily stopped by the scheduler between quanta.
     READY,
     RUNNING,
-    // SUSPENDED means SafeBox paused the process because it detected suspicious
-    // behaviour and is waiting for the user's decision.
     SUSPENDED,
     TERMINATED
 };
 
 struct PCB {
     pid_t pid{0};
+    pid_t parent_pid{0};
+    std::string name;
     ProcessState state{ProcessState::NEW};
-
     std::chrono::steady_clock::time_point arrival_time;
     std::optional<std::chrono::steady_clock::time_point> first_run_time;
     std::optional<std::chrono::steady_clock::time_point> finish_time;
-
+    std::optional<int> exit_status;
     long total_cpu_ms{0};
     long remaining_cpu_ms{0};
+    long cpu_ms{0};
     int priority{0};
     int queue_level{0};
 };
 
-}  // namespace controller
-}  // namespace safebox
+class ProcessTable {
+public:
+    bool addProcess(const PCB& process);
+    PCB* findProcess(pid_t pid);
+    const PCB* findProcess(pid_t pid) const;
+    bool setState(pid_t pid, ProcessState next_state);
+    bool canTransition(ProcessState current_state, ProcessState next_state) const;
+    const std::vector<PCB>& processes() const;
 
-#endif  // SAFEBOX_PROCESS_TABLE_HPP
+private:
+    std::vector<PCB> processes_;
+};
+
+const char* processStateName(ProcessState state);
+
+}}

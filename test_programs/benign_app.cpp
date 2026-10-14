@@ -1,8 +1,3 @@
-// CONCEPT: Stable-memory workload
-// WHY SAFEBOX NEEDS IT: A stable control workload demonstrates that fixed resident
-// memory does not look like a sustained leak or rapid memory bomb.
-// HOW IT WORKS: The process allocates a fixed 32 MiB vector, touches every page,
-// holds it for five seconds, and exits normally.
 
 #include <chrono>
 #include <iostream>
@@ -15,7 +10,6 @@ using namespace std;
 const int STABLE_ALLOCATION_BYTES = 32 * 1024 * 1024;
 const int HOLD_DURATION_SECONDS = 5;
 
-// Touch each page so the fixed allocation remains visible in RSS.
 bool touchPages(vector<char>& memory) {
     long page_size = sysconf(_SC_PAGESIZE);
     if (page_size <= 0) {
@@ -28,12 +22,10 @@ bool touchPages(vector<char>& memory) {
     return true;
 }
 
-// Hold the touched allocation unchanged for the control interval.
 void holdMemory() {
     this_thread::sleep_for(chrono::seconds(HOLD_DURATION_SECONDS));
 }
 
-// Touch, hold, and then release the stable allocation.
 int main() {
     vector<char> stable_memory(STABLE_ALLOCATION_BYTES);
     if (!touchPages(stable_memory)) {

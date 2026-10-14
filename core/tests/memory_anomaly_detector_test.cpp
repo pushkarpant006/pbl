@@ -1,8 +1,3 @@
-// CONCEPT: Memory detector unit test
-// WHY SAFEBOX NEEDS IT: Synthetic data makes detector thresholds repeatable without
-// relying on procfs, machine load, or real memory-allocation timing.
-// HOW IT WORKS: The test creates timestamped samples and checks warm-up, normal,
-// bomb, leak, and caller-limit verdicts along with their explanations.
 
 #include <cstdlib>
 #include <chrono>
@@ -17,7 +12,6 @@ using namespace std;
 typedef safebox::memory::MemorySample Sample;
 typedef chrono::steady_clock Clock;
 
-// Stop the test with a readable explanation when a condition fails.
 void require(bool condition, const string& message) {
     if (condition) {
         return;
@@ -26,7 +20,6 @@ void require(bool condition, const string& message) {
     exit(1);
 }
 
-// Build one synthetic process sample at a known elapsed second.
 Sample makeSample(int seconds, long rss_mb) {
     Sample sample{};
     sample.timestamp = Clock::time_point{} + chrono::seconds(seconds);
@@ -38,7 +31,6 @@ Sample makeSample(int seconds, long rss_mb) {
     return sample;
 }
 
-// Confirm startup warm-up does not report a short growth history as abnormal.
 void checkWarmupAndNormal() {
     safebox::memory::MemoryAnomalyDetector detector;
     vector<Sample> samples;
@@ -52,7 +44,6 @@ void checkWarmupAndNormal() {
     require(result.reason.find("no configured") != string::npos, "normal result explains its verdict");
 }
 
-// Confirm a high short-window growth rate and a caller limit have different verdicts.
 void checkBombAndLimit() {
     safebox::memory::MemoryAnomalyDetector detector;
     vector<Sample> samples;
@@ -74,7 +65,6 @@ void checkBombAndLimit() {
     require(limit.reason.find("limit") != string::npos, "limit reason includes the configured boundary");
 }
 
-// Confirm steady positive growth crosses the long-window leak threshold.
 void checkLeak() {
     safebox::memory::MemoryAnomalyDetector detector;
     vector<Sample> samples;
@@ -89,7 +79,6 @@ void checkLeak() {
     require(result.reason.find("Sustained") != string::npos, "leak reason names sustained growth");
 }
 
-// Confirm the leak verdict uses the most recent full configured window.
 void checkRecentLeakWindow() {
     safebox::memory::MemoryAnomalyDetector detector;
     vector<Sample> samples;
@@ -104,7 +93,6 @@ void checkRecentLeakWindow() {
             "recent positive growth must still be found");
 }
 
-// Run each detector behavior check and report a single test result.
 int main() {
     checkWarmupAndNormal();
     checkBombAndLimit();

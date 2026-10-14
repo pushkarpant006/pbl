@@ -1,8 +1,3 @@
-// CONCEPT: Round robin algorithm test
-// WHY SAFEBOX NEEDS IT: A deterministic unit test checks queue order without
-// scheduler timing or Linux process behavior affecting the result.
-// HOW IT WORKS: Synthetic PCBs enter the ready list, receive turns in FIFO order,
-// and are removed after the test reports them finished.
 
 #include <cstdlib>
 #include <iostream>
@@ -12,7 +7,6 @@
 
 using namespace std;
 
-// Stop the test with a readable message when one expected condition is false.
 void require(bool condition, const string& message) {
     if (condition) {
         return;
@@ -21,7 +15,6 @@ void require(bool condition, const string& message) {
     exit(1);
 }
 
-// Create a ready process with a known CPU estimate for the queue test.
 safebox::controller::PCB makeProcess(pid_t pid, long cpu_ms) {
     safebox::controller::PCB process{};
     process.pid = pid;
@@ -30,7 +23,6 @@ safebox::controller::PCB makeProcess(pid_t pid, long cpu_ms) {
     return process;
 }
 
-// Check FIFO order, requeueing, short final turns, and process removal.
 int main() {
     safebox::scheduler::RoundRobinScheduler scheduler(100);
     scheduler.addProcess(makeProcess(101, 500));

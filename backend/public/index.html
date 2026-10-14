@@ -1,499 +1,434 @@
-<!-- CONCEPT: Local SafeBox web interface
-     WHY SAFEBOX NEEDS IT: Users need a clear page for the real tools already built.
-     HOW IT WORKS: Fetch module status and display real memory and scheduler results. -->
+
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SafeBox local demo</title>
+  <title>SafeBox | Process analysis</title>
   <style>
     :root {
-      color-scheme: dark;
+      color-scheme: light;
       font-family: system-ui, sans-serif;
-      background: #101820;
-      color: #edf2f4;
+      font-size: 16px;
+      color: #1f2328;
+      background: #f5f7fa;
+      --blue: #1f6feb;
+      --green: #1a7f37;
+      --amber: #9a6700;
+      --red: #cf222e;
+      --border: #d8dee4;
     }
-    body { margin: 0 auto; max-width: 1120px; padding: 24px; }
-    h1, h2 { color: #8ecae6; }
-    section, .card {
-      background: #1d2a35;
-      border: 1px solid #334756;
-      border-radius: 10px;
-      margin: 18px 0;
-      padding: 18px;
-    }
-    .warning {
-      background: #572f21;
-      border: 2px solid #ffb703;
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 32px 16px; }
+    main { max-width: 800px; margin: 0 auto; }
+    .card {
+      background: #fff;
+      border: 1px solid var(--border);
       border-radius: 8px;
-      color: #fff3d6;
-      font-weight: 700;
-      padding: 16px;
+      margin: 0 0 20px;
+      padding: 20px;
     }
-    .module-grid, .summary-grid {
-      display: grid;
-      gap: 12px;
-      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-    }
-    .module-card, .summary-card {
-      background: #243541;
-      border-radius: 8px;
-      padding: 14px;
-    }
-    .module-card.not-built { color: #aab4bb; opacity: 0.5; }
-    .status { display: block; font-size: 0.85rem; margin-top: 6px; }
-    label { display: inline-flex; flex-direction: column; gap: 6px; margin: 8px 14px 8px 0; }
-    input, select, button {
-      border: 1px solid #577080;
-      border-radius: 5px;
+    h1, h2, h3 { margin: 0 0 14px; }
+    h1 { font-size: 1.7rem; }
+    h2 { font-size: 1.25rem; }
+    h3 { font-size: 1rem; }
+    p { line-height: 1.5; }
+    .muted { color: #59636e; font-size: 0.9rem; }
+    label { display: block; font-weight: 600; margin: 16px 0; }
+    input[type="file"] { display: block; margin-top: 8px; max-width: 100%; }
+    button {
+      border: 0;
+      border-radius: 6px;
+      background: var(--blue);
+      color: white;
+      cursor: pointer;
       font: inherit;
-      padding: 8px;
+      font-weight: 650;
+      padding: 10px 16px;
     }
-    input, select { background: #101820; color: #edf2f4; }
-    button { background: #219ebc; color: #06151d; cursor: pointer; font-weight: 700; }
-    button:disabled { cursor: wait; opacity: 0.6; }
-    .loading { color: #ffb703; min-height: 1.5em; }
-    .error { color: #ff8b8b; white-space: pre-wrap; }
-    .success { color: #9be7a5; }
+    button.secondary { background: #eaeef2; color: #24292f; }
+    button:disabled { cursor: wait; opacity: 0.65; }
+    .main-button { display: block; font-size: 1.08rem; padding: 13px 20px; width: 100%; }
+    .button-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+    .warning { margin-bottom: 0; }
+    .error {
+      border: 1px solid #ff8182;
+      border-radius: 6px;
+      background: #ffebe9;
+      color: #82071e;
+      margin: 0 0 20px;
+      padding: 12px 16px;
+      white-space: pre-wrap;
+    }
+    .status-line { align-items: center; display: flex; gap: 8px; margin-bottom: 14px; }
+    .badge { border-radius: 999px; background: #ddf4ff; color: #0550ae; font-weight: 700; padding: 4px 10px; }
+    .badge.finished { background: #dafbe1; color: var(--green); }
     .table-wrap { overflow-x: auto; }
-    table { border-collapse: collapse; margin-top: 12px; width: 100%; }
-    th, td { border-bottom: 1px solid #405461; padding: 9px; text-align: left; }
-    th { color: #8ecae6; }
-    .verdict { border-radius: 4px; font-weight: 700; padding: 3px 7px; }
-    .verdict-normal { background: #174b32; color: #a4f0b4; }
-    .verdict-leak_suspected { background: #574817; color: #ffe082; }
-    .verdict-bomb_suspected, .verdict-limit_exceeded { background: #5b2525; color: #ffaaaa; }
-    canvas { background: #111c24; border-radius: 6px; max-width: 100%; }
-    .bar-track { background: #101820; height: 18px; min-width: 120px; }
-    .bar { background: #219ebc; height: 100%; }
-    .muted { color: #aab4bb; }
+    table { border-collapse: collapse; margin: 8px 0 16px; width: 100%; }
+    th, td { border-bottom: 1px solid var(--border); padding: 9px 10px; text-align: left; vertical-align: top; }
+    th { background: #f6f8fa; font-weight: 650; }
+    tbody tr:nth-child(even) { background: #f6f8fa; }
+    .state { align-items: center; display: inline-flex; gap: 7px; white-space: nowrap; }
+    .dot { background: #8c959f; border-radius: 50%; height: 9px; width: 9px; }
+    .dot.RUNNING { background: var(--green); }
+    .dot.READY { background: var(--blue); }
+    .dot.SUSPENDED { background: var(--amber); }
+    .dot.TERMINATED { background: #8c959f; }
+    .event-log {
+      background: #f6f8fa;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      height: 180px;
+      overflow: auto;
+      padding: 10px;
+    }
+    .event-log p { font-size: 0.85rem; margin: 0 0 6px; overflow-wrap: anywhere; }
+    .result-banner { border-left: 6px solid var(--green); }
+    .result-banner.LOW { border-color: var(--green); }
+    .result-banner.MEDIUM { border-color: var(--amber); }
+    .result-banner.HIGH { border-color: var(--red); }
+    .risk-score { font-size: 1.1rem; font-weight: 650; }
+    .tile-grid { display: grid; gap: 12px; grid-template-columns: repeat(4, 1fr); }
+    .tile { background: #f6f8fa; border-radius: 6px; padding: 14px; }
+    .tile strong { display: block; font-size: 1.25rem; margin-top: 6px; }
+    .section-title { margin-top: 8px; }
+    .slice-bar-track { background: #eaeef2; border-radius: 3px; height: 12px; min-width: 90px; }
+    .slice-bar { background: var(--blue); border-radius: 3px; height: 100%; min-width: 2px; }
+    .db-note { color: #59636e; font-size: 0.85rem; }
+    [hidden] { display: none !important; }
     @media (max-width: 600px) {
-      body { padding: 12px; }
-      section { padding: 12px; }
+      body { padding: 16px 10px; }
+      .card { padding: 15px; }
+      .tile-grid { grid-template-columns: repeat(2, 1fr); }
+      th, td { padding: 8px 6px; }
     }
   </style>
 </head>
 <body>
-  <header>
-    <h1>SafeBox</h1>
-    <p class="muted">Local demonstrations of the real SafeBox C++ tools.</p>
-    <div class="warning">Isolation is not integrated yet. Uploaded programs run directly on this machine. Only upload programs you wrote or trust.</div>
-  </header>
-
   <main>
-    <section aria-labelledby="modules-heading">
-      <h2 id="modules-heading">What SafeBox has so far</h2>
-      <div id="module-list" class="module-grid" aria-live="polite"></div>
-    </section>
-
-    <section aria-labelledby="analyze-heading">
-      <h2 id="analyze-heading">Analyze a program</h2>
+    <section class="card" aria-labelledby="title">
+      <h1 id="title">SafeBox</h1>
       <form id="analyze-form">
-        <label>Program file
-          <input id="program-file" name="file" type="file" required>
-        </label>
-        <label>Sample interval (ms)
-          <input name="interval" type="number" min="50" max="5000" value="100" required>
-        </label>
-        <label>RSS limit (MiB)
-          <input name="limitMb" type="number" min="16" max="1024" value="200" required>
-        </label>
-        <label>Action on limit or rapid growth
-          <select name="action">
-            <option value="none">Report only</option>
-            <option value="pause">Pause process</option>
-            <option value="kill">Kill process</option>
-          </select>
-        </label>
-        <label>Timeout (seconds)
-          <input name="timeout" type="number" min="1" max="60" value="30" required>
-        </label>
-        <button id="analyze-button" type="submit">Run memory analysis</button>
+        <label for="program-file">Program file</label>
+        <input id="program-file" name="file" type="file" required>
+        <div class="button-row">
+          <label>Quantum (ms)
+            <input name="quantum" type="number" min="50" max="1000" value="200">
+          </label>
+          <label>Timeout (seconds)
+            <input name="timeout" type="number" min="1" max="60" value="15">
+          </label>
+        </div>
+        <button id="run-button" class="main-button" type="submit">Run &amp; Analyze</button>
       </form>
-      <p class="muted">Pause waits for an external decision. If the timeout expires first, the backend terminates the tool process group.</p>
-      <p id="analyze-loading" class="loading" aria-live="polite"></p>
-      <p id="analyze-error" class="error" role="alert"></p>
-      <div id="file-info"></div>
-      <div id="analysis-summary" class="summary-grid"></div>
-      <div id="chart-container" hidden>
-        <h3>RSS over time</h3>
-        <canvas id="rss-chart" width="900" height="300" aria-label="RSS over time chart"></canvas>
-      </div>
-      <div class="table-wrap">
-        <table id="samples-table" hidden>
-          <thead>
-            <tr><th>Elapsed ms</th><th>RSS MiB</th><th>VSIZE MiB</th><th>Minor faults</th><th>Major faults</th><th>Verdict</th><th>Reason</th></tr>
-          </thead>
-          <tbody id="samples-body"></tbody>
-        </table>
-      </div>
+      <p class="muted warning">This program runs directly on this machine. Upload only programs you trust.</p>
     </section>
 
-    <section aria-labelledby="scheduler-heading">
-      <h2 id="scheduler-heading">Scheduler demo</h2>
-      <form id="scheduler-form">
-        <label>Quantum (ms)
-          <input name="quantumMs" type="number" min="50" max="1000" value="200" required>
-        </label>
-        <label>CPU bursts (ms, comma separated)
-          <input name="burstsMs" type="text" value="1000,2000,1500,500" required>
-        </label>
-        <label>Timeout (seconds)
-          <input name="timeoutSeconds" type="number" min="1" max="60" value="30" required>
-        </label>
-        <button id="scheduler-button" type="submit">Run Round Robin demo</button>
-      </form>
-      <p id="scheduler-loading" class="loading" aria-live="polite"></p>
-      <p id="scheduler-error" class="error" role="alert"></p>
-      <p id="scheduler-switches" class="success"></p>
+    <div id="error-box" class="error" role="alert" hidden></div>
+
+    <section id="live-card" class="card" aria-labelledby="live-title" hidden>
+      <h2 id="live-title">Live analysis</h2>
+      <div class="status-line">
+        <span id="status-badge" class="badge">Running</span>
+        <span id="live-message" class="muted">Waiting for process events...</span>
+      </div>
+      <h3>Processes</h3>
       <div class="table-wrap">
-        <table id="gantt-table" hidden>
-          <thead><tr><th>Slice</th><th>PID</th><th>Start ms</th><th>End ms</th><th>CPU ms</th><th>Timeline</th></tr></thead>
-          <tbody id="gantt-body"></tbody>
+        <table>
+          <thead><tr><th>PID</th><th>Parent</th><th>Name</th><th>State</th></tr></thead>
+          <tbody id="live-processes"></tbody>
         </table>
       </div>
-      <div class="table-wrap">
-        <table id="metrics-table" hidden>
-          <thead><tr><th>PID</th><th>First run ms</th><th>Finish ms</th><th>CPU ms</th><th>Waiting ms</th><th>Turnaround ms</th><th>Response ms</th><th>Exit</th></tr></thead>
-          <tbody id="metrics-body"></tbody>
-        </table>
-      </div>
+      <h3>Event log</h3>
+      <div id="event-log" class="event-log" role="log" aria-live="polite"></div>
     </section>
+
+    <section id="analysis-results" hidden></section>
   </main>
 
   <script>
     "use strict";
 
-    // Find one page element by its stable identifier.
-    function findElement(identifier) {
-      return document.getElementById(identifier);
-    }
+    const processRows = new Map();
+    const analyzeForm = document.getElementById("analyze-form");
+    const runButton = document.getElementById("run-button");
+    const liveCard = document.getElementById("live-card");
+    const resultContainer = document.getElementById("analysis-results");
+    const errorBox = document.getElementById("error-box");
 
-    // Show an API response error without inserting it as HTML.
-    function showError(elementId, message) {
-      findElement(elementId).textContent = message;
-    }
-
-    // Send JSON or multipart data and turn backend errors into readable messages.
-    async function sendRequest(url, options) {
-      const response = await fetch(url, options);
-      let result;
-      try {
-        result = await response.json();
-      } catch (error) {
-        throw new Error("The backend returned an unreadable response.");
-      }
-      if (!response.ok) {
-        throw new Error(result.error || `Request failed with status ${response.status}.`);
-      }
-      return result;
-    }
-
-    // Create a text-only child element for user-visible values.
-    function makeTextElement(tagName, text, className) {
-      const element = document.createElement(tagName);
-      element.textContent = text;
-      if (className) {
-        element.className = className;
-      }
+    function makeTextElement(tag, text, className) {
+      const element = document.createElement(tag);
+      element.textContent = String(text);
+      if (className) element.className = className;
       return element;
     }
 
-    // Load the static module inventory and grey out modules that are not implemented.
-    async function loadModules() {
-      const list = findElement("module-list");
-      list.textContent = "Loading module status...";
-      try {
-        const result = await sendRequest("/api/modules", { method: "GET" });
-        list.textContent = "";
-        for (let index = 0; index < result.modules.length; index += 1) {
-          const moduleInfo = result.modules[index];
-          const card = makeTextElement("div", "", "module-card");
-          if (moduleInfo.status !== "built") {
-            card.classList.add("not-built");
-          }
-          card.appendChild(makeTextElement("strong", moduleInfo.name));
-          card.appendChild(makeTextElement("span",
-            moduleInfo.status === "built" ? "Built" : "Not built", "status"));
-          list.appendChild(card);
+    function showError(message) {
+      errorBox.textContent = message;
+      errorBox.hidden = false;
+    }
+
+    function setRunning(isRunning) {
+      runButton.disabled = isRunning;
+      runButton.textContent = isRunning ? "Analyzing..." : "Run & Analyze";
+    }
+
+    function addLogLine(message, timeMs) {
+      const line = makeTextElement("p", `${timeMs ?? 0} ms  ${message}`);
+      const log = document.getElementById("event-log");
+      log.appendChild(line);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function renderStateCell(state) {
+      const wrapper = document.createElement("span");
+      wrapper.className = "state";
+      const dot = makeTextElement("span", "", `dot ${state}`);
+      dot.setAttribute("aria-hidden", "true");
+      wrapper.appendChild(dot);
+      wrapper.appendChild(makeTextElement("span", state));
+      return wrapper;
+    }
+
+    function updateLiveProcess(process) {
+      let row = processRows.get(process.pid);
+      if (!row) {
+        row = document.createElement("tr");
+        processRows.set(process.pid, row);
+        document.getElementById("live-processes").appendChild(row);
+      }
+      row.textContent = "";
+      row.appendChild(makeTextElement("td", process.pid));
+      row.appendChild(makeTextElement("td", process.parent_pid));
+      row.appendChild(makeTextElement("td", process.name));
+      const stateCell = document.createElement("td");
+      stateCell.appendChild(renderStateCell(process.state || "READY"));
+      row.appendChild(stateCell);
+    }
+
+    function handleAnalyzerEvent(event) {
+      if (event.type === "process_added") {
+        updateLiveProcess({ ...event, state: "READY" });
+        addLogLine(`+ process ${event.pid} added (child of ${event.parent_pid})`, event.time_ms);
+      } else if (event.type === "state_changed") {
+        const previous = processRows.get(event.pid);
+        if (previous) {
+          const cells = previous.children;
+          const rowData = {
+            pid: event.pid,
+            parent_pid: cells[1].textContent,
+            name: cells[2].textContent,
+            state: event.to
+          };
+          updateLiveProcess(rowData);
         }
-      } catch (error) {
-        list.textContent = "";
-        list.appendChild(makeTextElement("p", error.message, "error"));
+        addLogLine(`${event.pid} is now ${event.to}`, event.time_ms);
+      } else if (event.type === "process_exited") {
+        const previous = processRows.get(event.pid);
+        if (previous) {
+          updateLiveProcess({
+            pid: event.pid,
+            parent_pid: previous.children[1].textContent,
+            name: previous.children[2].textContent,
+            state: "TERMINATED"
+          });
+        }
+        addLogLine(`Process ${event.pid} exited`, event.time_ms);
+      } else if (event.type === "action") {
+        const message = event.action === "PAUSE"
+          ? `Paused ${event.pid}`
+          : "Terminated process group";
+        addLogLine(message, event.time_ms);
+      } else if (event.type === "error") {
+        throw new Error(event.error);
       }
     }
 
-    // Add one labelled summary card without using HTML string interpolation.
-    function addSummaryCard(container, label, value) {
-      const card = makeTextElement("div", "", "summary-card");
-      card.appendChild(makeTextElement("strong", label));
-      card.appendChild(makeTextElement("div", String(value)));
-      container.appendChild(card);
+    function addTile(container, label, value) {
+      const tile = makeTextElement("div", "", "tile");
+      tile.appendChild(makeTextElement("span", label, "muted"));
+      tile.appendChild(makeTextElement("strong", value));
+      container.appendChild(tile);
     }
 
-    // Display the uploaded program identity, digest, type, and size.
-    function renderFileInfo(fileInfo) {
-      const container = findElement("file-info");
-      container.textContent = "";
-      const card = makeTextElement("div", "", "card");
-      card.appendChild(makeTextElement("h3", "Uploaded program"));
-      card.appendChild(makeTextElement("p", `Name: ${fileInfo.name}`));
-      card.appendChild(makeTextElement("p", `Size: ${fileInfo.sizeBytes} bytes`));
-      card.appendChild(makeTextElement("p", `Format: ${fileInfo.type}`));
-      card.appendChild(makeTextElement("p", `SHA-256: ${fileInfo.sha256}`));
-      container.appendChild(card);
-    }
-
-    // Add a verdict pill that uses a fixed CSS class based on a known verdict.
-    function makeVerdictPill(verdict) {
-      const safeVerdict = String(verdict).toLowerCase();
-      return makeTextElement("span", verdict, `verdict verdict-${safeVerdict}`);
-    }
-
-    // Find the largest measured RSS value for a chart scale.
-    function findMaximumRss(samples) {
-      let maximumRss = 1;
-      for (let index = 0; index < samples.length; index += 1) {
-        if (samples[index].rssMb > maximumRss) {
-          maximumRss = samples[index].rssMb;
-        }
+    function makeTable(headers, rows) {
+      const wrapper = makeTextElement("div", "", "table-wrap");
+      const table = document.createElement("table");
+      const head = document.createElement("thead");
+      const headerRow = document.createElement("tr");
+      for (let index = 0; index < headers.length; index++) {
+        headerRow.appendChild(makeTextElement("th", headers[index]));
       }
-      return maximumRss;
-    }
-
-    // Draw the chart axes in a fixed margin around the plot area.
-    function drawChartAxes(context, width, height) {
-      context.strokeStyle = "#718896";
-      context.lineWidth = 1;
-      context.beginPath();
-      context.moveTo(48, 18);
-      context.lineTo(48, height - 36);
-      context.lineTo(width - 18, height - 36);
-      context.stroke();
-    }
-
-    // Connect samples using elapsed time on the horizontal axis and RSS vertically.
-    function drawRssLine(context, samples, maximumRss, width, height) {
-      const totalTime = Math.max(1, samples[samples.length - 1].elapsedMs);
-      context.strokeStyle = "#8ecae6";
-      context.lineWidth = 3;
-      context.beginPath();
-      for (let index = 0; index < samples.length; index += 1) {
-        const x = 48 + (width - 72) * samples[index].elapsedMs / totalTime;
-        const y = height - 36 - (height - 60) * samples[index].rssMb / maximumRss;
-        if (index === 0) {
-          context.moveTo(x, y);
-        } else {
-          context.lineTo(x, y);
-        }
-      }
-      context.stroke();
-    }
-
-    // Label the chart scale and elapsed-time extent.
-    function drawChartLabels(context, maximumRss, lastElapsedMs, width, height) {
-      context.fillStyle = "#edf2f4";
-      context.font = "14px system-ui";
-      context.fillText(`0 MiB - ${maximumRss.toFixed(1)} MiB`, 54, 18);
-      context.fillText(`0 - ${lastElapsedMs} ms`, width - 180, height - 10);
-    }
-
-    // Draw measured RSS samples as a simple line chart on the canvas.
-    function drawRssChart(samples) {
-      const canvas = findElement("rss-chart");
-      const context = canvas.getContext("2d");
-      const width = canvas.width;
-      const height = canvas.height;
-      context.clearRect(0, 0, width, height);
-      drawChartAxes(context, width, height);
-      if (samples.length === 0) return;
-      const maximumRss = findMaximumRss(samples);
-      drawRssLine(context, samples, maximumRss, width, height);
-      drawChartLabels(context, maximumRss,
-        samples[samples.length - 1].elapsedMs, width, height);
-    }
-
-    // Show the final memory verdict and process outcome in summary cards.
-    function renderAnalysisSummary(summary) {
-      const container = findElement("analysis-summary");
-      container.textContent = "";
-      addSummaryCard(container, "Verdict", summary.verdict);
-      addSummaryCard(container, "Peak RSS", `${summary.peakRssMb.toFixed(2)} MiB`);
-      const outcome = summary.action !== "none"
-        ? summary.action
-        : `Exit status ${summary.exitStatus}`;
-      addSummaryCard(container, "Process outcome", outcome);
-      addSummaryCard(container, "Duration", `${summary.durationMs} ms`);
-    }
-
-    // Render every memory sample and its detector explanation into a table row.
-    function renderSampleRows(samples) {
-      const body = findElement("samples-body");
-      body.textContent = "";
-      for (let index = 0; index < samples.length; index += 1) {
-        const sample = samples[index];
+      head.appendChild(headerRow);
+      table.appendChild(head);
+      const body = document.createElement("tbody");
+      for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
         const row = document.createElement("tr");
-        const values = [
-          sample.elapsedMs,
-          sample.rssMb.toFixed(2),
-          sample.vsizeMb.toFixed(2),
-          sample.minorFaultDelta,
-          sample.majorFaultDelta
-        ];
-        for (let valueIndex = 0; valueIndex < values.length; valueIndex += 1) {
-          row.appendChild(makeTextElement("td", String(values[valueIndex])));
+        for (let cellIndex = 0; cellIndex < rows[rowIndex].length; cellIndex++) {
+          const cell = document.createElement("td");
+          const value = rows[rowIndex][cellIndex];
+          if (value instanceof Node) cell.appendChild(value);
+          else cell.textContent = value === null || value === undefined ? "—" : String(value);
+          row.appendChild(cell);
         }
-        const verdictCell = document.createElement("td");
-        verdictCell.appendChild(makeVerdictPill(sample.verdict));
-        row.appendChild(verdictCell);
-        row.appendChild(makeTextElement("td", sample.reason));
         body.appendChild(row);
       }
-      findElement("samples-table").hidden = false;
+      table.appendChild(body);
+      wrapper.appendChild(table);
+      return wrapper;
     }
 
-    // Render file details, memory summary, sample rows, and the measured RSS chart.
+    function renderFinalProcesses(processes) {
+      const rows = [];
+      for (let index = 0; index < processes.length; index++) {
+        const process = processes[index];
+        rows.push([
+          process.pid,
+          process.parent_pid,
+          process.final_state || process.status,
+          process.exit_status,
+          process.cpu_ms ?? process.cpu_usage
+        ]);
+      }
+      return makeTable(["PID", "Parent", "State", "Exit", "CPU ms"], rows);
+    }
+
+    function renderSlices(slices) {
+      let largest = 1;
+      for (let index = 0; index < slices.length; index++) {
+        if (slices[index].cpu_ms > largest) largest = slices[index].cpu_ms;
+      }
+      const rows = [];
+      for (let index = 0; index < slices.length; index++) {
+        const slice = slices[index];
+        const track = makeTextElement("div", "", "slice-bar-track");
+        const bar = makeTextElement("div", "", "slice-bar");
+        bar.style.width = `${Math.max(2, 100 * slice.cpu_ms / largest)}%`;
+        track.appendChild(bar);
+        rows.push([index + 1, slice.pid, slice.start_ms, slice.end_ms, slice.cpu_ms, track]);
+      }
+      return makeTable(["Slice", "PID", "Start ms", "End ms", "CPU ms", "CPU"], rows);
+    }
+
+    function metricText(value) {
+      return Number.isFinite(Number(value)) ? `${Number(value).toFixed(1)} ms` : "—";
+    }
+
     function renderAnalysis(result) {
-      renderFileInfo(result.file);
-      renderAnalysisSummary(result.summary);
-      renderSampleRows(result.samples);
-      findElement("chart-container").hidden = false;
-      drawRssChart(result.samples);
+      liveCard.hidden = true;
+      resultContainer.hidden = false;
+      resultContainer.textContent = "";
+      const findings = result.findings || [];
+      const banner = makeTextElement("section", "", `card result-banner ${result.threat_level}`);
+      banner.appendChild(makeTextElement("h2", result.verdict || "Analysis complete"));
+      banner.appendChild(makeTextElement("p",
+        `Risk score: ${result.risk_score ?? 0} · Threat level: ${result.threat_level || "SAFE"}`,
+        "risk-score"));
+      resultContainer.appendChild(banner);
+
+      const summary = result.summary || result;
+      const tiles = makeTextElement("section", "", "card tile-grid");
+      addTile(tiles, "Total time", `${summary.duration_ms ?? 0} ms`);
+      addTile(tiles, "CPU time", `${summary.total_cpu_ms ?? 0} ms`);
+      addTile(tiles, "CPU %", `${Number(summary.cpu_percent || 0).toFixed(2)}%`);
+      addTile(tiles, "Processes", summary.process_count ?? (result.processes || []).length);
+      resultContainer.appendChild(tiles);
+
+      const processCard = makeTextElement("section", "", "card");
+      processCard.appendChild(makeTextElement("h2", "Process management"));
+      processCard.appendChild(renderFinalProcesses(result.processes || []));
+      resultContainer.appendChild(processCard);
+
+      const schedulerCard = makeTextElement("section", "", "card");
+      schedulerCard.appendChild(makeTextElement("h2", "CPU scheduling"));
+      schedulerCard.appendChild(renderSlices(result.slices || []));
+      const metrics = result.scheduler_metrics || {};
+      const averages = metrics.averages || {};
+      schedulerCard.appendChild(makeTextElement("p",
+        `Average waiting: ${metricText(averages.waiting_ms)} · ` +
+        `turnaround: ${metricText(averages.turnaround_ms)} · ` +
+        `response: ${metricText(averages.response_ms)} · ` +
+        `context switches: ${metrics.context_switches ?? 0}`));
+      resultContainer.appendChild(schedulerCard);
+
+      if (result.db_error) {
+        resultContainer.appendChild(makeTextElement("p",
+          `Not saved to database: ${result.db_error}`, "db-note"));
+      }
     }
 
-    // Submit the selected program and validated form values to the analysis route.
+    function resetRunView() {
+      errorBox.hidden = true;
+      errorBox.textContent = "";
+      resultContainer.hidden = true;
+      resultContainer.textContent = "";
+      liveCard.hidden = false;
+      processRows.clear();
+      document.getElementById("live-processes").textContent = "";
+      document.getElementById("event-log").textContent = "";
+      const badge = document.getElementById("status-badge");
+      badge.className = "badge";
+      badge.textContent = "Running";
+      document.getElementById("live-message").textContent = "Analyzing the real process tree...";
+    }
+
+    async function readAnalysisStream(response) {
+      if (!response.ok) {
+        const errorBody = await response.json();
+        throw new Error(errorBody.error || `Request failed with status ${response.status}.`);
+      }
+      if (!response.body) throw new Error("This browser does not support streamed responses.");
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let pending = "";
+      let finalResult = null;
+      while (true) {
+        const chunk = await reader.read();
+        pending += decoder.decode(chunk.value || new Uint8Array(), { stream: !chunk.done });
+        const lines = pending.split(/\r?\n/);
+        pending = lines.pop();
+        for (let index = 0; index < lines.length; index++) {
+          if (!lines[index].trim()) continue;
+          const record = JSON.parse(lines[index]);
+          if (record.type === "result") finalResult = record;
+          else handleAnalyzerEvent(record);
+        }
+        if (chunk.done) break;
+      }
+      if (pending.trim()) {
+        const record = JSON.parse(pending);
+        if (record.type === "result") finalResult = record;
+        else handleAnalyzerEvent(record);
+      }
+      if (!finalResult) throw new Error("Analysis stream ended without a final result.");
+      return finalResult;
+    }
+
     async function submitAnalysis(event) {
       event.preventDefault();
-      showError("analyze-error", "");
-      findElement("file-info").textContent = "";
-      findElement("analysis-summary").textContent = "";
-      findElement("samples-table").hidden = true;
-      findElement("chart-container").hidden = true;
-      const button = findElement("analyze-button");
-      button.disabled = true;
-      findElement("analyze-loading").textContent = "Running the real memory monitor...";
+      if (!document.getElementById("program-file").files.length) {
+        showError("Choose a Linux executable or script first.");
+        return;
+      }
+      resetRunView();
+      setRunning(true);
       try {
-        const formData = new FormData(findElement("analyze-form"));
-        const result = await sendRequest("/api/analyze", { method: "POST", body: formData });
+        const response = await fetch("/api/analyze", {
+          method: "POST",
+          body: new FormData(analyzeForm)
+        });
+        const result = await readAnalysisStream(response);
         renderAnalysis(result);
       } catch (error) {
-        showError("analyze-error", error.message);
+        showError(error.message);
+        liveCard.hidden = true;
       } finally {
-        button.disabled = false;
-        findElement("analyze-loading").textContent = "";
+        setRunning(false);
       }
     }
 
-    // Add a text table cell to a row.
-    function addTableCell(row, value) {
-      row.appendChild(makeTextElement("td", String(value)));
-    }
-
-    // Find the longest slice to scale the Gantt bars proportionally.
-    function findLongestSlice(slices) {
-      let longestSlice = 1;
-      for (let index = 0; index < slices.length; index += 1) {
-        const duration = slices[index].endMs - slices[index].startMs;
-        if (duration > longestSlice) longestSlice = duration;
-      }
-      return longestSlice;
-    }
-
-    // Add one visible bar row for each measured scheduler slice.
-    function renderGanttSlices(slices) {
-      const ganttTable = findElement("gantt-table");
-      const ganttBody = findElement("gantt-body");
-      ganttBody.textContent = "";
-      const longestSlice = findLongestSlice(slices);
-      for (let index = 0; index < slices.length; index += 1) {
-        const slice = slices[index];
-        const row = document.createElement("tr");
-        addTableCell(row, index + 1);
-        addTableCell(row, `P${slice.pid}`);
-        addTableCell(row, slice.startMs);
-        addTableCell(row, slice.endMs);
-        addTableCell(row, slice.cpuMs);
-        const barCell = document.createElement("td");
-        const track = makeTextElement("div", "", "bar-track");
-        const bar = makeTextElement("div", "", "bar");
-        bar.style.width = `${Math.max(2, 100 * (slice.endMs - slice.startMs) / longestSlice)}%`;
-        track.appendChild(bar);
-        barCell.appendChild(track);
-        row.appendChild(barCell);
-        ganttBody.appendChild(row);
-      }
-      ganttTable.hidden = false;
-    }
-
-    // Show per-process response, waiting, turnaround, and exit metrics.
-    function renderProcessMetrics(processes) {
-      const metricsTable = findElement("metrics-table");
-      const metricsBody = findElement("metrics-body");
-      metricsBody.textContent = "";
-      for (let index = 0; index < processes.length; index += 1) {
-        const process = processes[index];
-        const row = document.createElement("tr");
-        addTableCell(row, `P${process.pid}`);
-        addTableCell(row, process.first_run_ms);
-        addTableCell(row, process.finish_ms);
-        addTableCell(row, process.cpu_ms);
-        addTableCell(row, process.waiting_ms);
-        addTableCell(row, process.turnaround_ms);
-        addTableCell(row, process.response_ms);
-        addTableCell(row, process.exit_status === null ? "Not reported" : process.exit_status);
-        metricsBody.appendChild(row);
-      }
-      metricsTable.hidden = false;
-    }
-
-    // Render the real slice records as a Gantt table and display process metrics.
-    function renderScheduler(result) {
-      renderGanttSlices(result.slices);
-      renderProcessMetrics(result.summary.processes);
-      findElement("scheduler-switches").textContent =
-        `Context switches: ${result.summary.contextSwitches}; slices: ${result.summary.sliceCount}.`;
-    }
-
-    // Parse comma-separated bursts and submit them to the real Round Robin CLI.
-    async function submitScheduler(event) {
-      event.preventDefault();
-      showError("scheduler-error", "");
-      findElement("gantt-table").hidden = true;
-      findElement("metrics-table").hidden = true;
-      findElement("scheduler-switches").textContent = "";
-      const button = findElement("scheduler-button");
-      button.disabled = true;
-      findElement("scheduler-loading").textContent = "Running real CPU-burner processes...";
-      try {
-        const form = new FormData(findElement("scheduler-form"));
-        const burstsText = String(form.get("burstsMs"));
-        const burstsMs = burstsText.split(",");
-        for (let index = 0; index < burstsMs.length; index += 1) {
-          burstsMs[index] = Number(burstsMs[index].trim());
-        }
-        const requestBody = {
-          quantumMs: Number(form.get("quantumMs")),
-          burstsMs,
-          timeoutSeconds: Number(form.get("timeoutSeconds"))
-        };
-        const result = await sendRequest("/api/scheduler-demo", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(requestBody)
-        });
-        renderScheduler(result);
-      } catch (error) {
-        showError("scheduler-error", error.message);
-      } finally {
-        button.disabled = false;
-        findElement("scheduler-loading").textContent = "";
-      }
-    }
-
-    findElement("analyze-form").addEventListener("submit", submitAnalysis);
-    findElement("scheduler-form").addEventListener("submit", submitScheduler);
-    loadModules();
+    analyzeForm.addEventListener("submit", submitAnalysis);
   </script>
 </body>
 </html>

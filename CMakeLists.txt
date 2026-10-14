@@ -7,6 +7,34 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 include_directories(${CMAKE_SOURCE_DIR}/core/src)
 
+add_library(safebox_process_lib STATIC
+    core/src/controller/process_table.cpp
+    core/src/controller/process_launcher.cpp
+    core/src/controller/process_control.cpp
+    core/src/controller/proc_reader.cpp
+    core/src/controller/process_tree.cpp
+)
+target_include_directories(safebox_process_lib PUBLIC ${CMAKE_SOURCE_DIR}/core/src)
+
+add_executable(safebox_banker
+    core/src/deadlock/bankers_main.cpp
+    core/src/deadlock/bankers_algorithm.cpp
+)
+
+add_executable(safebox_analyze
+    core/src/analyzer/analyzer_main.cpp
+    core/src/analyzer/findings_builder.cpp
+    core/src/analyzer/json_writer.cpp
+)
+target_link_libraries(safebox_analyze PRIVATE
+    safebox_process_lib
+    safebox_scheduler_lib
+)
+
+add_executable(fork_tree test_programs/fork_tree.cpp)
+add_executable(bounded_process_load test_programs/bounded_process_load.cpp)
+add_executable(bounded_cpu_load test_programs/bounded_cpu_load.cpp)
+
 add_library(safebox_scheduler_lib STATIC
     core/src/scheduler/round_robin.cpp
     core/src/scheduler/scheduler_metrics.cpp

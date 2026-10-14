@@ -1,12 +1,8 @@
-// CONCEPT: Uploaded executable inspection
-// WHY SAFEBOX NEEDS IT: Only executable formats supported by Linux should be passed to SafeBox.
-// HOW IT WORKS: Read the uploaded bytes, identify ELF or shebang files, and hash their contents.
 
 const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 
-// Check ELF magic bytes before treating an upload as a Linux executable.
 function isElfFile(contents) {
   return contents.length >= 4 &&
     contents[0] === 0x7f &&
@@ -15,7 +11,6 @@ function isElfFile(contents) {
     contents[3] === 0x46;
 }
 
-// Check for the interpreter marker used by executable scripts.
 function isShebangFile(contents) {
   return contents.length >= 3 &&
     contents[0] === 0x23 &&
@@ -24,7 +19,6 @@ function isShebangFile(contents) {
     contents[2] !== 0x0d;
 }
 
-// Return safe display metadata and reject formats that Linux cannot run here.
 function inspectFile(filePath, originalName) {
   const contents = fs.readFileSync(filePath);
   let fileType = "";

@@ -1,8 +1,3 @@
-// CONCEPT: Memory growth-rate detection
-// WHY SAFEBOX NEEDS IT: Rapid growth and gradual sustained growth are different
-// patterns, so the monitor needs simple measured rules rather than one-time guesses.
-// HOW IT WORKS: The detector checks the caller limit, ignores startup warm-up, then
-// measures RSS growth over short and long windows supplied as ordinary samples.
 
 #include "memory_anomaly_detector.hpp"
 
@@ -14,18 +9,15 @@ namespace safebox {
 namespace memory {
 namespace {
 
-// Convert a sample's resident memory from kilobytes to mebibytes.
 double rssMegabytes(const MemorySample& sample) {
     return static_cast<double>(sample.rss_kb) / 1024.0;
 }
 
-// Return the time between two timestamped measurements in seconds.
 double timeBetweenSeconds(const MemorySample& newer, const MemorySample& older) {
     chrono::duration<double> elapsed = newer.timestamp - older.timestamp;
     return elapsed.count();
 }
 
-// Return the earliest sample that starts a sufficiently long recent leak window.
 int findLeakWindowStart(const vector<MemorySample>& samples, double required_seconds) {
     int start_index = -1;
     double closest_duration = 0.0;
@@ -40,7 +32,6 @@ int findLeakWindowStart(const vector<MemorySample>& samples, double required_sec
     return start_index;
 }
 
-// Count steps where resident memory increased within the leak window.
 int countPositiveSteps(const vector<MemorySample>& samples, int start_index) {
     int positive_steps = 0;
     for (int index = start_index + 1; index < static_cast<int>(samples.size()); index++) {
@@ -51,7 +42,6 @@ int countPositiveSteps(const vector<MemorySample>& samples, int start_index) {
     return positive_steps;
 }
 
-// Return a normal verdict with a plain-English reason.
 DetectionResult normalResult(const string& reason) {
     DetectionResult result{};
     result.verdict = MemoryVerdict::NORMAL;
@@ -59,7 +49,6 @@ DetectionResult normalResult(const string& reason) {
     return result;
 }
 
-// Check whether the current sample exceeds the caller's RSS limit.
 bool checkLimit(const MemorySample& sample, optional<long> limit_kb,
                 DetectionResult& result) {
     if (!limit_kb || sample.rss_kb < *limit_kb) {
@@ -73,7 +62,6 @@ bool checkLimit(const MemorySample& sample, optional<long> limit_kb,
     return true;
 }
 
-// Check if the latest sample grew too quickly during the configured short window.
 bool checkBomb(const vector<MemorySample>& samples, const DetectorConfig& config,
                DetectionResult& result) {
     int start_index = -1;
@@ -105,7 +93,6 @@ bool checkBomb(const vector<MemorySample>& samples, const DetectorConfig& config
     return true;
 }
 
-// Check for sustained positive RSS growth over the configured long window.
 bool checkLeak(const vector<MemorySample>& samples, const DetectorConfig& config,
                DetectionResult& result) {
     double required_seconds = chrono::duration<double>(config.leak_window).count();
@@ -135,14 +122,11 @@ bool checkLeak(const vector<MemorySample>& samples, const DetectorConfig& config
     return true;
 }
 
-}  // namespace
-
-// Keep the selected detection thresholds for later evaluations.
+}
 MemoryAnomalyDetector::MemoryAnomalyDetector(DetectorConfig config) {
     config_ = config;
 }
 
-// Evaluate one sample history, returning the first matching memory verdict.
 DetectionResult MemoryAnomalyDetector::evaluate(const vector<MemorySample>& input,
                                                 optional<long> limit_kb) const {
     if (input.empty()) {
@@ -179,7 +163,6 @@ DetectionResult MemoryAnomalyDetector::evaluate(const vector<MemorySample>& inpu
     return normalResult(reason.str());
 }
 
-// Return the readable label used for each memory verdict.
 const char* verdictName(MemoryVerdict verdict) {
     if (verdict == MemoryVerdict::NORMAL) return "NORMAL";
     if (verdict == MemoryVerdict::LEAK_SUSPECTED) return "LEAK_SUSPECTED";
@@ -188,5 +171,4 @@ const char* verdictName(MemoryVerdict verdict) {
     return "UNKNOWN";
 }
 
-}  // namespace memory
-}  // namespace safebox
+}}

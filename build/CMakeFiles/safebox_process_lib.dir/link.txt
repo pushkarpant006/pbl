@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsafebox_process_lib.a CMakeFiles/safebox_process_lib.dir/core/src/controller/process_table.cpp.o CMakeFiles/safebox_process_lib.dir/core/src/controller/process_launcher.cpp.o CMakeFiles/safebox_process_lib.dir/core/src/controller/process_control.cpp.o CMakeFiles/safebox_process_lib.dir/core/src/controller/proc_reader.cpp.o CMakeFiles/safebox_process_lib.dir/core/src/controller/process_tree.cpp.o
+/usr/bin/ranlib libsafebox_process_lib.a

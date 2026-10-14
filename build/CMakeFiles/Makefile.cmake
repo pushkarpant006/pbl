@@ -47,6 +47,12 @@ set(CMAKE_MAKEFILE_PRODUCTS
 
 # Dependency information for all targets:
 set(CMAKE_DEPEND_INFO_FILES
+  "CMakeFiles/safebox_process_lib.dir/DependInfo.cmake"
+  "CMakeFiles/safebox_banker.dir/DependInfo.cmake"
+  "CMakeFiles/safebox_analyze.dir/DependInfo.cmake"
+  "CMakeFiles/fork_tree.dir/DependInfo.cmake"
+  "CMakeFiles/bounded_process_load.dir/DependInfo.cmake"
+  "CMakeFiles/bounded_cpu_load.dir/DependInfo.cmake"
   "CMakeFiles/safebox_scheduler_lib.dir/DependInfo.cmake"
   "CMakeFiles/safebox_sched.dir/DependInfo.cmake"
   "CMakeFiles/cpu_burner.dir/DependInfo.cmake"

@@ -1,6 +1,3 @@
-// CONCEPT: Backend configuration
-// WHY SAFEBOX NEEDS IT: Tool paths and resource limits should be defined in one place.
-// HOW IT WORKS: Resolve project paths, allow a binary-directory override, and export limits.
 
 const path = require("node:path");
 
@@ -17,14 +14,16 @@ module.exports = {
   port: 3000,
   uploadLimitBytes: 10 * 1024 * 1024,
   outputLimitBytes: 2 * 1024 * 1024,
-  minimumIntervalMs: 50,
-  maximumIntervalMs: 5000,
-  minimumLimitMb: 16,
-  maximumLimitMb: 1024,
   minimumTimeoutSeconds: 1,
   maximumTimeoutSeconds: 60,
   minimumQuantumMs: 50,
   maximumQuantumMs: 1000,
-  maximumProcesses: 8,
-  maximumBurstMs: 5000
+  database: {
+    connectionString: process.env.DATABASE_URL,
+    host: process.env.DB_HOST || "localhost",
+    port: Number(process.env.DB_PORT || 5432),
+    user: process.env.DB_USER || "safebox_app",
+    password: process.env.DB_PASSWORD || "",
+    name: process.env.DB_NAME || "safebox"
+  }
 };

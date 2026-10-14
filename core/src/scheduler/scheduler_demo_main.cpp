@@ -1,8 +1,3 @@
-// CONCEPT: Scheduler CLI demo
-// WHY SAFEBOX NEEDS IT: A command-line run makes the round-robin algorithm visible
-// while it controls real child processes instead of simulated work.
-// HOW IT WORKS: The demo reads the quantum and CPU targets, starts stopped burners,
-// then gives their PIDs to the Round Robin scheduler and its runner.
 
 #include <csignal>
 #include <cstdlib>
@@ -31,7 +26,6 @@ struct DemoOptions {
     bool json_mode;
 };
 
-// Split a comma-separated list into its non-empty text values.
 vector<string> splitValues(const string& input) {
     vector<string> values;
     string value;
@@ -44,7 +38,6 @@ vector<string> splitValues(const string& input) {
     return values;
 }
 
-// Convert burst text into milliseconds for the real CPU-burner processes.
 bool parseBursts(const string& input, vector<long>& bursts) {
     vector<string> values = splitValues(input);
     for (int index = 0; index < static_cast<int>(values.size()); index++) {
@@ -62,7 +55,6 @@ bool parseBursts(const string& input, vector<long>& bursts) {
     return true;
 }
 
-// Read one named option and update its matching demo value.
 bool parseOneOption(const string& argument, const string& value, DemoOptions& options) {
     try {
         if (argument == "--algo") options.algorithm = value;
@@ -76,7 +68,6 @@ bool parseOneOption(const string& argument, const string& value, DemoOptions& op
     return true;
 }
 
-// Read all supported command-line values and validate the requested policy.
 bool parseArguments(int argc, char** argv, DemoOptions& options) {
     options.quantum_ms = 0;
     options.process_count = 0;
@@ -106,7 +97,6 @@ bool parseArguments(int argc, char** argv, DemoOptions& options) {
     return true;
 }
 
-// Hide burner output so JSON stdout contains only records written by the demo.
 void redirectChildOutput() {
     int null_file = open("/dev/null", O_WRONLY);
     if (null_file < 0) _exit(126);
@@ -116,7 +106,6 @@ void redirectChildOutput() {
     close(null_file);
 }
 
-// Start one child stopped so the scheduler controls its first execution.
 bool launchStoppedBurner(long burst_ms, pid_t& child_pid, bool json_mode) {
     child_pid = fork();
     if (child_pid == -1) {
@@ -141,7 +130,6 @@ bool launchStoppedBurner(long burst_ms, pid_t& child_pid, bool json_mode) {
     return true;
 }
 
-// Launch all CPU burners and record their PIDs in the same order as burst values.
 bool launchBurners(const vector<long>& bursts, vector<pid_t>& process_ids, bool json_mode) {
     for (int index = 0; index < static_cast<int>(bursts.size()); index++) {
         pid_t child_pid = 0;
@@ -153,7 +141,6 @@ bool launchBurners(const vector<long>& bursts, vector<pid_t>& process_ids, bool 
     return true;
 }
 
-// Add one shared PCB for each real child to the scheduler's ready list.
 void addProcesses(safebox::scheduler::RoundRobinScheduler& scheduler,
                   const vector<pid_t>& process_ids, const vector<long>& bursts) {
     for (int index = 0; index < static_cast<int>(process_ids.size()); index++) {
@@ -166,7 +153,6 @@ void addProcesses(safebox::scheduler::RoundRobinScheduler& scheduler,
     }
 }
 
-// Read normal-exit statuses from the runner's captured human-readable report.
 map<pid_t, int> parseExitStatuses(const string& output) {
     map<pid_t, int> statuses;
     stringstream output_stream(output);
@@ -188,7 +174,6 @@ map<pid_t, int> parseExitStatuses(const string& output) {
     return statuses;
 }
 
-// Print one measured slice as a JSON Lines record.
 void printJsonSlice(const safebox::scheduler::SliceRecord& slice) {
     long long cpu_ms = (slice.cpu_after_ns - slice.cpu_before_ns) / 1000000;
     cout << "{\"type\":\"slice\",\"pid\":" << slice.pid
@@ -204,7 +189,6 @@ struct JsonProcessTotals {
     int slices;
 };
 
-// Add every measured slice belonging to one process.
 JsonProcessTotals collectProcessTotals(pid_t pid,
                                        const vector<safebox::scheduler::SliceRecord>& slices) {
     JsonProcessTotals totals{false, 0, 0, 0, 0};
@@ -220,11 +204,9 @@ JsonProcessTotals collectProcessTotals(pid_t pid,
     return totals;
 }
 
-// Print calculated timing and CPU totals for one process in the final JSON record.
 void printJsonProcess(pid_t pid, const vector<safebox::scheduler::SliceRecord>& slices,
                       const map<pid_t, int>& exit_statuses);
 
-// Print per-process scheduling totals and the total number of context switches.
 void printJsonSummary(const vector<pid_t>& process_ids,
                       const vector<safebox::scheduler::SliceRecord>& slices,
                       const map<pid_t, int>& exit_statuses) {
@@ -242,7 +224,6 @@ void printJsonSummary(const vector<pid_t>& process_ids,
          << ",\"slice_count\":" << slices.size() << "}\n" << flush;
 }
 
-// Print calculated timing and CPU totals for one process in the final JSON record.
 void printJsonProcess(pid_t pid, const vector<safebox::scheduler::SliceRecord>& slices,
                       const map<pid_t, int>& exit_statuses) {
     JsonProcessTotals totals = collectProcessTotals(pid, slices);
@@ -265,7 +246,6 @@ void printJsonProcess(pid_t pid, const vector<safebox::scheduler::SliceRecord>& 
     cout << "}";
 }
 
-// Run the scheduler while keeping its text report out of JSON stdout.
 void runJsonDemo(safebox::scheduler::SchedulerRunner& runner,
                  const vector<pid_t>& process_ids) {
     ostringstream captured_output;
@@ -280,9 +260,7 @@ void runJsonDemo(safebox::scheduler::SchedulerRunner& runner,
     printJsonSummary(process_ids, slices, exit_statuses);
 }
 
-}  // namespace
-
-// Parse the demo options and connect real CPU burners to the Round Robin runner.
+}
 int main(int argc, char** argv) {
     DemoOptions options{};
     if (!parseArguments(argc, argv, options)) {

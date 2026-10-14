@@ -1,8 +1,3 @@
-// CONCEPT: Linux process memory tracking
-// WHY SAFEBOX NEEDS IT: Memory decisions must use measurements reported by Linux
-// for the real process rather than estimated or simulated values.
-// HOW IT WORKS: The tracker reads status, stat, and statm under procfs, converts
-// their counters, and returns a sample without making anomaly decisions.
 
 #include "memory_tracker.hpp"
 
@@ -18,7 +13,6 @@ namespace safebox {
 namespace memory {
 namespace {
 
-// Read a procfs file and distinguish a vanished process from other read failures.
 bool readProcFile(const string& path, string& contents, string& error,
                   SampleReadResult& result) {
     errno = 0;
@@ -43,7 +37,6 @@ bool readProcFile(const string& path, string& contents, string& error,
     return true;
 }
 
-// Convert a fully numeric field from stat without accepting trailing characters.
 bool parseCounter(const string& text, unsigned long& value) {
     try {
         size_t parsed = 0;
@@ -54,7 +47,6 @@ bool parseCounter(const string& text, unsigned long& value) {
     }
 }
 
-// Read VmRSS and VmSize values from the status file.
 bool parseStatusMemory(const string& contents, long& rss_kb, long& vsize_kb) {
     bool found_rss = false;
     bool found_vsize = false;
@@ -82,7 +74,6 @@ bool parseStatusMemory(const string& contents, long& rss_kb, long& vsize_kb) {
     return found_rss && found_vsize;
 }
 
-// Use statm pages when status omits a memory size.
 bool parseStatm(const string& contents, unsigned long& virtual_pages,
                 unsigned long& resident_pages) {
     istringstream fields(contents);
@@ -95,7 +86,6 @@ bool parseStatm(const string& contents, unsigned long& virtual_pages,
            parseCounter(resident_text, resident_pages);
 }
 
-// Convert resident and virtual page counts into kilobytes.
 bool pagesToKilobytes(unsigned long virtual_pages, unsigned long resident_pages,
                       long& vsize_kb, long& rss_kb) {
     long page_size = sysconf(_SC_PAGESIZE);
@@ -107,7 +97,6 @@ bool pagesToKilobytes(unsigned long virtual_pages, unsigned long resident_pages,
     return true;
 }
 
-// Read all three procfs files before any parsing begins.
 bool readProcessFiles(pid_t pid, string& status_text, string& stat_text,
                       string& statm_text, string& error, SampleReadResult& result) {
     string base = "/proc/" + to_string(pid);
@@ -116,7 +105,6 @@ bool readProcessFiles(pid_t pid, string& status_text, string& stat_text,
            readProcFile(base + "/statm", statm_text, error, result);
 }
 
-// Parse memory sizes and fall back to statm when status does not include them.
 bool parseMemorySizes(const string& base, const string& status_text,
                       const string& statm_text, long& rss_kb, long& vsize_kb,
                       string& error) {
@@ -134,9 +122,7 @@ bool parseMemorySizes(const string& base, const string& status_text,
     return true;
 }
 
-}  // namespace
-
-// Parse fault counters after the final ')' so comm names may contain parentheses.
+}
 optional<ProcessStatFields> parseStatLine(const string& line) {
     size_t close_parenthesis = line.rfind(')');
     if (close_parenthesis == string::npos) {
@@ -157,7 +143,6 @@ optional<ProcessStatFields> parseStatLine(const string& line) {
     return result;
 }
 
-// Read procfs memory and fault counters into one timestamped sample.
 SampleReadResult readSample(pid_t pid, MemorySample& sample, string& error) {
     if (pid <= 0) {
         error = "PID must be positive";
@@ -187,5 +172,4 @@ SampleReadResult readSample(pid_t pid, MemorySample& sample, string& error) {
     return SampleReadResult::SUCCESS;
 }
 
-}  // namespace memory
-}  // namespace safebox
+}}

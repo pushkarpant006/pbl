@@ -1,8 +1,3 @@
-// CONCEPT: Memory monitoring CLI
-// WHY SAFEBOX NEEDS IT: Users need a simple way to watch real process memory and
-// optionally pause or kill a process after the detector reports a serious verdict.
-// HOW IT WORKS: The CLI launches or attaches to one process, samples procfs in a
-// loop, prints memory and page-fault changes, and applies the selected action.
 
 #include "memory_anomaly_detector.hpp"
 #include "memory_tracker.hpp"
@@ -52,7 +47,6 @@ struct MonitorSummary {
     string error;
 };
 
-// Convert an argument to a whole number without accepting trailing text.
 bool parseNumber(const string& text, long& number) {
     try {
         size_t parsed = 0;
@@ -63,7 +57,6 @@ bool parseNumber(const string& text, long& number) {
     }
 }
 
-// Read the numeric value following a command-line option.
 bool readOptionNumber(int argc, char** argv, int& index, long& value) {
     if (index + 1 >= argc || !parseNumber(argv[index + 1], value)) {
         return false;
@@ -72,7 +65,6 @@ bool readOptionNumber(int argc, char** argv, int& index, long& value) {
     return true;
 }
 
-// Set the action after checking its three supported names.
 bool setAction(const string& name, MonitorOptions& options) {
     if (name == "none") options.action = ACTION_NONE;
     else if (name == "pause") options.action = ACTION_PAUSE;
@@ -81,7 +73,6 @@ bool setAction(const string& name, MonitorOptions& options) {
     return true;
 }
 
-// Parse interval, memory-limit, and action options.
 bool parseMonitorOption(int argc, char** argv, int& index, MonitorOptions& options) {
     string name = argv[index];
     long value = 0;
@@ -102,12 +93,10 @@ bool parseMonitorOption(int argc, char** argv, int& index, MonitorOptions& optio
     return false;
 }
 
-// Add one command argument when --run has already started a child command.
 void addCommandArgument(const string& argument, MonitorOptions& options) {
     options.command.push_back(argument);
 }
 
-// Read monitor options and collect the command that should be launched.
 bool parseArguments(int argc, char** argv, MonitorOptions& options) {
     options.pid = -1;
     options.has_pid = false;
@@ -140,7 +129,6 @@ bool parseArguments(int argc, char** argv, MonitorOptions& options) {
     return options.has_pid || !options.command.empty();
 }
 
-// Redirect a monitored program so it cannot pollute the JSON output stream.
 void redirectChildOutput() {
     int null_file = open("/dev/null", O_WRONLY);
     if (null_file < 0) {
@@ -152,7 +140,6 @@ void redirectChildOutput() {
     close(null_file);
 }
 
-// Turn the command string list into argv and execute it as a child process.
 void executeCommand(const vector<string>& command, bool json_mode) {
     if (json_mode) {
         redirectChildOutput();
@@ -167,7 +154,6 @@ void executeCommand(const vector<string>& command, bool json_mode) {
     _exit(127);
 }
 
-// Fork the requested program so the monitor can reap its exit status.
 pid_t launchCommand(const vector<string>& command, bool json_mode) {
     pid_t child_pid = fork();
     if (child_pid == -1) {
@@ -180,7 +166,6 @@ pid_t launchCommand(const vector<string>& command, bool json_mode) {
     return child_pid;
 }
 
-// Print whether a child returned normally or was ended by a signal.
 void printExitStatus(pid_t child_pid, int status, bool json_mode) {
     if (json_mode) return;
     if (WIFEXITED(status)) {
@@ -194,7 +179,6 @@ void printExitStatus(pid_t child_pid, int status, bool json_mode) {
 
 long long elapsedMilliseconds(chrono::steady_clock::time_point start);
 
-// Check for a completed child without blocking and reap it when available.
 bool checkChildExit(pid_t child_pid, int& status, bool json_mode,
                     MonitorSummary& summary, chrono::steady_clock::time_point start) {
     pid_t result = waitpid(child_pid, &status, WNOHANG);
@@ -217,7 +201,6 @@ bool checkChildExit(pid_t child_pid, int& status, bool json_mode,
     return false;
 }
 
-// Remove old samples while preserving the first sample and the latest five seconds.
 void trimOldSamples(vector<MemorySample>& samples) {
     if (samples.size() < 3) return;
     chrono::steady_clock::time_point cutoff = samples.back().timestamp - chrono::seconds(5);
@@ -234,7 +217,6 @@ void trimOldSamples(vector<MemorySample>& samples) {
     samples.resize(output_index);
 }
 
-// Escape control characters so a detector explanation remains valid JSON text.
 string escapeJson(const string& value) {
     string escaped;
     for (int index = 0; index < static_cast<int>(value.size()); index++) {
@@ -248,7 +230,6 @@ string escapeJson(const string& value) {
     return escaped;
 }
 
-// Print one memory measurement and its per-interval fault deltas.
 void printSample(const MemorySample& sample, long long elapsed_ms, long minor_delta,
                  long major_delta, const DetectionResult& result, bool json_mode) {
     if (json_mode) {
@@ -268,7 +249,6 @@ void printSample(const MemorySample& sample, long long elapsed_ms, long minor_de
          << verdictName(result.verdict) << " | " << result.reason << "\n" << flush;
 }
 
-// Send the selected operating-system signal and print the action taken.
 bool applyAction(pid_t pid, Action action, MemoryVerdict verdict, bool json_mode) {
     int signal_number = action == ACTION_PAUSE ? SIGSTOP : SIGKILL;
     if (kill(pid, signal_number) != 0) {
@@ -286,7 +266,6 @@ bool applyAction(pid_t pid, Action action, MemoryVerdict verdict, bool json_mode
     return true;
 }
 
-// Wait with repeated nonblocking checks so a paused child can receive a user decision.
 void waitForChildExit(pid_t child_pid, bool json_mode, MonitorSummary& summary,
                       chrono::steady_clock::time_point start) {
     int status = 0;
@@ -295,20 +274,17 @@ void waitForChildExit(pid_t child_pid, bool json_mode, MonitorSummary& summary,
     }
 }
 
-// Return elapsed time from monitor start for readable sample rows.
 long long elapsedMilliseconds(chrono::steady_clock::time_point start) {
     chrono::milliseconds elapsed =
         chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now() - start);
     return elapsed.count();
 }
 
-// Determine whether the current verdict should trigger the configured action.
 bool needsAction(MemoryVerdict verdict) {
     return verdict == MemoryVerdict::LIMIT_EXCEEDED ||
            verdict == MemoryVerdict::BOMB_SUSPECTED;
 }
 
-// Read one sample, update fault deltas, and print the detector's current verdict.
 SampleReadResult processSample(pid_t pid, const MonitorOptions& options,
                                MemoryAnomalyDetector& detector, vector<MemorySample>& samples,
                                MemorySample& previous, bool& has_previous,
@@ -339,7 +315,6 @@ SampleReadResult processSample(pid_t pid, const MonitorOptions& options,
     return SampleReadResult::SUCCESS;
 }
 
-// Apply one requested action and wait for an external decision if it pauses a child.
 int handleAction(pid_t pid, const MonitorOptions& options, MemoryVerdict verdict,
                  bool& action_applied, MonitorSummary& summary,
                  chrono::steady_clock::time_point start) {
@@ -357,7 +332,6 @@ int handleAction(pid_t pid, const MonitorOptions& options, MemoryVerdict verdict
     return 0;
 }
 
-// Sample a process until it exits or a user action ends this monitoring run.
 void printSummary(const MonitorSummary& summary) {
     cout << "{\"type\":\"summary\",\"verdict\":\"" << summary.verdict
          << "\",\"peak_rss_kb\":" << summary.peak_rss_kb << ",\"exit_status\":";
@@ -371,7 +345,6 @@ void printSummary(const MonitorSummary& summary) {
     cout << "}\n" << flush;
 }
 
-// Sample a process until it exits or a user action ends this monitoring run.
 int monitorProcess(const MonitorOptions& options, pid_t pid) {
     MemoryAnomalyDetector detector;
     vector<MemorySample> samples;
@@ -425,7 +398,6 @@ int monitorProcess(const MonitorOptions& options, pid_t pid) {
     }
 }
 
-// Parse options, launch or select a PID, and begin memory monitoring.
 int main(int argc, char** argv) {
     MonitorOptions options{};
     if (!parseArguments(argc, argv, options)) {

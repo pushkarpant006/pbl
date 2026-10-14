@@ -1,8 +1,3 @@
-// CONCEPT: Steady memory-growth workload
-// WHY SAFEBOX NEEDS IT: Gradual retained allocation gives the detector a real
-// process whose RSS growth can be measured over a sustained window.
-// HOW IT WORKS: The process retains a touched 1 MiB chunk every 300 milliseconds,
-// grows for seven seconds, and then exits normally.
 
 #include <chrono>
 #include <iostream>
@@ -16,7 +11,6 @@ const int CHUNK_BYTES = 1024 * 1024;
 const int ALLOCATION_INTERVAL_MS = 300;
 const int RUN_DURATION_SECONDS = 7;
 
-// Touch each memory page so the leak workload increases resident memory.
 bool touchPages(vector<char>& memory) {
     long page_size = sysconf(_SC_PAGESIZE);
     if (page_size <= 0) {
@@ -29,7 +23,6 @@ bool touchPages(vector<char>& memory) {
     return true;
 }
 
-// Retain one touched chunk per interval until the demo duration expires.
 bool growMemory(vector<vector<char>>& retained_memory) {
     chrono::steady_clock::time_point finish_time =
         chrono::steady_clock::now() + chrono::seconds(RUN_DURATION_SECONDS);
@@ -43,7 +36,6 @@ bool growMemory(vector<vector<char>>& retained_memory) {
     return true;
 }
 
-// Print workload progress and run the steady-growth allocation.
 int main() {
     vector<vector<char>> retained_memory;
     cout << "memory_leak pid=" << getpid() << " growing at about 3.3 MiB/s\n" << flush;
