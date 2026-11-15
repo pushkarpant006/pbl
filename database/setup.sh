@@ -4,14 +4,37 @@ set -euo pipefail
 DB_ADMIN_USER="${DB_ADMIN_USER:-postgres}"
 DB_USER="${DB_USER:-safebox_app}"
 DB_NAME="${DB_NAME:-safebox}"
-DB_PASSWORD="${DB_PASSWORD:?Set DB_PASSWORD to a strong local database password.}"
 DB_HOST="${DB_HOST:-localhost}"
-export DB_NAME DB_PASSWORD DB_USER
+export DB_NAME DB_USER
 
-PGPASSWORD="${DB_ADMIN_PASSWORD:-}" psql -h "$DB_HOST" -U "$DB_ADMIN_USER" -d postgres \
-  -v ON_ERROR_STOP=1 \
-  -v db_user="$DB_USER" \
-  -v db_name="$DB_NAME" <<'SQL'
+if [[ -z "${DATABASE_URL:-}" ]]; then
+  ENV_FILE="$(dirname "$0")/../backend/.env"
+  if [[ -f "$ENV_FILE" ]]; then
+    while IFS= read -r env_line || [[ -n "$env_line" ]]; do
+      if [[ "$env_line" =~ ^[[:space:]]*(export[[:space:]]+)?DATABASE_URL[[:space:]]*=[[:space:]]*(.*)$ ]]; then
+        DATABASE_URL="${BASH_REMATCH[2]}"
+        DATABASE_URL="${DATABASE_URL%$'\r'}"
+        DATABASE_URL="${DATABASE_URL#"${DATABASE_URL%%[![:space:]]*}"}"
+        DATABASE_URL="${DATABASE_URL%"${DATABASE_URL##*[![:space:]]}"}"
+        if [[ "${DATABASE_URL:0:1}" == '"' && "${DATABASE_URL: -1}" == '"' ]] ||
+           [[ "${DATABASE_URL:0:1}" == "'" && "${DATABASE_URL: -1}" == "'" ]]; then
+          DATABASE_URL="${DATABASE_URL:1:${#DATABASE_URL}-2}"
+        fi
+        export DATABASE_URL
+        break
+      fi
+    done < "$ENV_FILE"
+  fi
+fi
+
+if [[ -z "${DATABASE_URL:-}" ]]; then
+  DB_PASSWORD="${DB_PASSWORD:?Set DATABASE_URL for Neon or DB_PASSWORD for local PostgreSQL.}"
+  export DB_PASSWORD
+
+  PGPASSWORD="${DB_ADMIN_PASSWORD:-}" psql -h "$DB_HOST" -U "$DB_ADMIN_USER" -d postgres \
+    -v ON_ERROR_STOP=1 \
+    -v db_user="$DB_USER" \
+    -v db_name="$DB_NAME" <<'SQL'
 \getenv db_password DB_PASSWORD
 SELECT format('CREATE ROLE %I LOGIN PASSWORD %L', :'db_user', :'db_password')
 WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'db_user')
@@ -24,13 +47,15 @@ WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = :'db_name')
 SELECT format('ALTER DATABASE %I OWNER TO %I', :'db_name', :'db_user')
 \gexec
 SQL
+  DB_CONNECTION="host=$DB_HOST port=${DB_PORT:-5432} user=$DB_USER dbname=$DB_NAME"
+  export PGPASSWORD="$DB_PASSWORD"
+else
+  DB_CONNECTION="$DATABASE_URL"
+fi
 
-PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" \
-  -v ON_ERROR_STOP=1 -f "$(dirname "$0")/schema.sql"
-PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" \
-  -v ON_ERROR_STOP=1 -f "$(dirname "$0")/seed.sql"
-PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" \
-  -v ON_ERROR_STOP=1 <<'SQL'
+psql "$DB_CONNECTION" -v ON_ERROR_STOP=1 -f "$(dirname "$0")/schema.sql"
+psql "$DB_CONNECTION" -v ON_ERROR_STOP=1 -f "$(dirname "$0")/seed.sql"
+psql "$DB_CONNECTION" -v ON_ERROR_STOP=1 <<'SQL'
 CREATE INDEX IF NOT EXISTS users_role_idx ON users(role);
 CREATE INDEX IF NOT EXISTS applications_user_id_idx ON applications(user_id);
 CREATE INDEX IF NOT EXISTS execution_sessions_application_id_idx ON execution_sessions(application_id);

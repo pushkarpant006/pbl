@@ -95,7 +95,13 @@
     .section-title { margin-top: 8px; }
     .slice-bar-track { background: #eaeef2; border-radius: 3px; height: 12px; min-width: 90px; }
     .slice-bar { background: var(--blue); border-radius: 3px; height: 100%; min-width: 2px; }
+    .memory-chart { display: block; height: auto; max-width: 100%; width: 100%; }
+    .memory-grid { stroke: #d8dee4; stroke-width: 1; }
+    .memory-line { fill: none; stroke: var(--blue); stroke-linecap: round; stroke-linejoin: round; stroke-width: 3; }
+    .memory-axis-label { fill: #59636e; font-size: 12px; }
     .db-note { color: #59636e; font-size: 0.85rem; }
+    .history-detail-heading { margin-top: 20px; }
+    .history-json { background: #f6f8fa; border-radius: 6px; overflow: auto; padding: 12px; }
     [hidden] { display: none !important; }
     @media (max-width: 600px) {
       body { padding: 16px 10px; }
@@ -125,6 +131,15 @@
       <p class="muted warning">This program runs directly on this machine. Upload only programs you trust.</p>
     </section>
 
+    <section class="card" aria-labelledby="history-title">
+      <h2 id="history-title">Analysis history</h2>
+      <p id="history-status" class="muted" role="status" aria-live="polite">
+        Loading saved analyses...
+      </p>
+      <div id="history-table" class="table-wrap"></div>
+    </section>
+    <section id="history-detail" class="card" aria-labelledby="history-detail-title" hidden></section>
+
     <div id="error-box" class="error" role="alert" hidden></div>
 
     <section id="live-card" class="card" aria-labelledby="live-title" hidden>
@@ -142,6 +157,10 @@
       </div>
       <h3>Event log</h3>
       <div id="event-log" class="event-log" role="log" aria-live="polite"></div>
+      <h3 class="section-title">Live memory use</h3>
+      <p id="live-memory-status" class="muted">Waiting for the first memory sample...</p>
+      <svg id="live-memory-chart" class="memory-chart" viewBox="0 0 700 230"
+           role="img" aria-label="Live total resident memory over time"></svg>
     </section>
 
     <section id="analysis-results" hidden></section>
@@ -156,6 +175,13 @@
     const liveCard = document.getElementById("live-card");
     const resultContainer = document.getElementById("analysis-results");
     const errorBox = document.getElementById("error-box");
+    const historyStatus = document.getElementById("history-status");
+    const historyTable = document.getElementById("history-table");
+    const historyDetail = document.getElementById("history-detail");
+    const memoryByPid = new Map();
+    const memoryTimeline = [];
+
+    const svgNamespace = "http://www.w3.org/2000/svg";
 
     function makeTextElement(tag, text, className) {
       const element = document.createElement(tag);
@@ -179,6 +205,84 @@
       const log = document.getElementById("event-log");
       log.appendChild(line);
       log.scrollTop = log.scrollHeight;
+    }
+
+    function createSvgElement(tag, attributes, text) {
+      const element = document.createElementNS(svgNamespace, tag);
+      for (const [name, value] of Object.entries(attributes)) {
+        element.setAttribute(name, String(value));
+      }
+      if (text !== undefined) element.textContent = text;
+      return element;
+    }
+
+    function renderMemoryChart(chart, samples, emptyMessage) {
+      chart.textContent = "";
+      if (samples.length === 0) {
+        chart.appendChild(createSvgElement("text",
+          { x: 54, y: 112, class: "memory-axis-label" },
+          emptyMessage || "Memory samples will appear as the program runs."));
+        return;
+      }
+      const left = 54;
+      const right = 680;
+      const top = 18;
+      const bottom = 184;
+      let maximumRss = 1;
+      for (let index = 0; index < samples.length; index++) {
+        maximumRss = Math.max(maximumRss, samples[index].rss_kb);
+      }
+      const maximumTime = Math.max(1,
+        samples[samples.length - 1].time_ms - samples[0].time_ms);
+      for (let gridIndex = 0; gridIndex <= 4; gridIndex++) {
+        const y = top + (bottom - top) * gridIndex / 4;
+        const valueMb = maximumRss * (4 - gridIndex) / 4 / 1024;
+        chart.appendChild(createSvgElement("line",
+          { x1: left, y1: y, x2: right, y2: y, class: "memory-grid" }));
+        chart.appendChild(createSvgElement("text",
+          { x: 4, y: y + 4, class: "memory-axis-label" },
+          `${valueMb.toFixed(1)} MiB`));
+      }
+      const points = [];
+      for (let index = 0; index < samples.length; index++) {
+        const sample = samples[index];
+        const x = left + (right - left) *
+          (sample.time_ms - samples[0].time_ms) / maximumTime;
+        const y = bottom - (bottom - top) * sample.rss_kb / maximumRss;
+        points.push(`${x},${y}`);
+      }
+      if (points.length === 1) {
+        const coordinates = points[0].split(",");
+        chart.appendChild(createSvgElement("circle",
+          { cx: coordinates[0], cy: coordinates[1], r: 5, fill: "var(--blue)" }));
+      } else {
+        chart.appendChild(createSvgElement("polyline",
+          { points: points.join(" "), class: "memory-line" }));
+      }
+      chart.appendChild(createSvgElement("text",
+        { x: left, y: 215, class: "memory-axis-label" },
+        `${samples[0].time_ms} ms`));
+      chart.appendChild(createSvgElement("text",
+        { x: right - 54, y: 215, class: "memory-axis-label" },
+        `${samples[samples.length - 1].time_ms} ms`));
+      chart.appendChild(createSvgElement("text",
+        { x: 290, y: 215, class: "memory-axis-label" }, "Elapsed time"));
+    }
+
+    function updateMemoryChart() {
+      renderMemoryChart(document.getElementById("live-memory-chart"), memoryTimeline);
+    }
+
+    function updateMemorySample(event) {
+      memoryByPid.set(event.pid, event);
+      let totalRssKb = 0;
+      for (const sample of memoryByPid.values()) totalRssKb += sample.rss_kb;
+      memoryTimeline.push({ time_ms: event.time_ms, rss_kb: totalRssKb });
+      document.getElementById("live-memory-status").textContent =
+        `Latest process ${event.pid}: ${(event.rss_kb / 1024).toFixed(2)} MiB RSS · ` +
+        `${(event.vsize_kb / 1024).toFixed(2)} MiB virtual · ${event.verdict}` +
+        (event.reason ? ` — ${event.reason}` : "");
+      updateMemoryChart();
     }
 
     function renderStateCell(state) {
@@ -234,7 +338,22 @@
             state: "TERMINATED"
           });
         }
+        memoryByPid.delete(event.pid);
         addLogLine(`Process ${event.pid} exited`, event.time_ms);
+        if (memoryTimeline.length > 0) {
+          let totalRssKb = 0;
+          for (const sample of memoryByPid.values()) totalRssKb += sample.rss_kb;
+          memoryTimeline.push({ time_ms: event.time_ms, rss_kb: totalRssKb });
+          updateMemoryChart();
+        }
+      } else if (event.type === "slice") {
+        addLogLine(`PID ${event.pid} used ${event.cpu_ms} CPU ms in its slice`, event.end_ms);
+      } else if (event.type === "memory_sample") {
+        updateMemorySample(event);
+        addLogLine(`PID ${event.pid} RSS ${(event.rss_kb / 1024).toFixed(2)} MiB · ${event.verdict}`,
+          event.time_ms);
+      } else if (event.type === "memory_error") {
+        addLogLine(`Memory sample for PID ${event.pid} failed: ${event.error}`, event.time_ms);
       } else if (event.type === "action") {
         const message = event.action === "PAUSE"
           ? `Paused ${event.pid}`
@@ -279,6 +398,178 @@
       return wrapper;
     }
 
+    function formatHistoryDate(value) {
+      if (!value) return "—";
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? "—" : date.toLocaleString();
+    }
+
+    function renderHistoryRows(history) {
+      historyTable.textContent = "";
+      historyDetail.hidden = true;
+      if (history.length === 0) {
+        historyStatus.textContent = "No saved analyses yet.";
+        return;
+      }
+      historyStatus.textContent = `${history.length} saved analysis run(s).`;
+      const rows = [];
+      for (let index = 0; index < history.length; index += 1) {
+        const run = history[index];
+        const viewButton = makeTextElement("button", "View", "secondary");
+        viewButton.type = "button";
+        viewButton.addEventListener("click", function showHistoryRun() {
+          openHistoryDetail(run.session_id);
+        });
+        rows.push([
+          run.session_id,
+          run.program_name,
+          formatHistoryDate(run.started_at),
+          run.threat_level,
+          run.risk_score,
+          run.process_count,
+          run.memory_analysis && run.memory_analysis.verdict
+            ? run.memory_analysis.verdict
+            : "—",
+          run.memory_sample_count,
+          viewButton
+        ]);
+      }
+      historyTable.appendChild(makeTable(
+        ["Run", "Program", "Started", "Threat", "Risk", "Processes",
+          "Memory", "Samples", "Details"],
+        rows
+      ));
+    }
+
+    async function loadHistory() {
+      historyStatus.textContent = "Loading saved analyses...";
+      try {
+        const response = await fetch("/api/history");
+        const body = await response.json();
+        if (!response.ok) {
+          throw new Error(body.error || `History request failed with status ${response.status}.`);
+        }
+        if (!Array.isArray(body.history)) throw new Error("History response has an invalid format.");
+        renderHistoryRows(body.history);
+      } catch (error) {
+        historyTable.textContent = "";
+        historyStatus.textContent = `Could not load analysis history: ${error.message}`;
+      }
+    }
+
+    function appendHistoryJson(container, title, value) {
+      if (!value || value.length === 0) return;
+      const details = document.createElement("details");
+      details.appendChild(makeTextElement("summary", title));
+      const content = makeTextElement("pre", JSON.stringify(value, null, 2), "history-json");
+      details.appendChild(content);
+      container.appendChild(details);
+    }
+
+    function renderHistoryDetail(detail) {
+      historyDetail.textContent = "";
+      historyDetail.hidden = false;
+      const heading = makeTextElement("h2", `Saved run: ${detail.application.name}`,
+        "history-detail-heading");
+      heading.id = "history-detail-title";
+      const closeButton = makeTextElement("button", "Close details", "secondary");
+      closeButton.type = "button";
+      closeButton.addEventListener("click", function closeHistoryDetail() {
+        historyDetail.hidden = true;
+      });
+      historyDetail.appendChild(heading);
+      historyDetail.appendChild(closeButton);
+
+      const session = detail.session;
+      const summary = detail.summary || {};
+      const memory = summary.memory_analysis || {};
+      const memorySamples = detail.memory_samples || [];
+      const processes = detail.processes || [];
+      const tiles = makeTextElement("div", "", "tile-grid");
+      addTile(tiles, "Started", formatHistoryDate(session.started_at));
+      addTile(tiles, "Status", session.status);
+      addTile(tiles, "Threat", session.threat_level);
+      addTile(tiles, "Risk score", session.risk_score);
+      addTile(tiles, "Duration", `${summary.duration_ms ?? 0} ms`);
+      addTile(tiles, "Peak process RSS",
+        `${(Number(memory.peak_rss_kb || 0) / 1024).toFixed(2)} MiB`);
+      historyDetail.appendChild(tiles);
+      historyDetail.appendChild(makeTextElement("p",
+        `File size: ${detail.application.file_size ?? 0} bytes · ` +
+        `SHA-256: ${detail.application.file_hash || "—"}`, "muted"));
+
+      const graphSamples = [];
+      for (let index = 0; index < memorySamples.length; index += 1) {
+        const sample = memorySamples[index];
+        graphSamples.push({
+          time_ms: Number(sample.elapsed_ms),
+          rss_kb: Number(sample.rss_kb)
+        });
+      }
+      const graph = createSvgElement("svg", {
+        viewBox: "0 0 700 230",
+        class: "memory-chart",
+        role: "img",
+        "aria-label": "Saved run resident memory over time"
+      });
+      renderMemoryChart(graph, graphSamples, "No memory samples were saved for this run.");
+      historyDetail.appendChild(makeTextElement("h3", "Memory history"));
+      historyDetail.appendChild(graph);
+
+      const processRows = [];
+      for (let index = 0; index < processes.length; index += 1) {
+        const process = processes[index];
+        const savedProcess = (summary.processes || []).find(function matchSummary(item) {
+          return item.pid === process.pid;
+        });
+        processRows.push([
+          process.pid,
+          process.parent_pid,
+          process.process_name,
+          process.status,
+          savedProcess ? savedProcess.exit_status : "—",
+          process.cpu_usage,
+          process.memory_usage
+            ? `${(Number(process.memory_usage) / 1024 / 1024).toFixed(2)} MiB`
+            : "—"
+        ]);
+      }
+      historyDetail.appendChild(makeTextElement("h3", "Processes"));
+      historyDetail.appendChild(makeTable(
+        ["PID", "Parent", "Name", "Status", "Exit", "CPU ms", "Peak RSS"],
+        processRows
+      ));
+
+      const slices = summary.slices || [];
+      historyDetail.appendChild(makeTextElement("h3", "CPU scheduling"));
+      historyDetail.appendChild(renderSlices(slices));
+      appendHistoryJson(historyDetail, "Findings", summary.findings || []);
+      appendHistoryJson(historyDetail, "Alerts", detail.alerts);
+      appendHistoryJson(historyDetail, "Actions", detail.actions);
+      appendHistoryJson(historyDetail, "Threat scores", detail.threat_scores);
+      appendHistoryJson(historyDetail, "Execution environments", detail.execution_environments);
+      appendHistoryJson(historyDetail, "System information", detail.system_info);
+      appendHistoryJson(historyDetail, "File events", detail.file_events);
+      appendHistoryJson(historyDetail, "Network events", detail.network_events);
+      appendHistoryJson(historyDetail, "Syscall events", detail.syscall_events);
+      historyDetail.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    async function openHistoryDetail(sessionId) {
+      historyDetail.hidden = false;
+      historyDetail.textContent = "Loading saved analysis...";
+      try {
+        const response = await fetch(`/api/history/${encodeURIComponent(sessionId)}`);
+        const body = await response.json();
+        if (!response.ok) {
+          throw new Error(body.error || `History request failed with status ${response.status}.`);
+        }
+        renderHistoryDetail(body);
+      } catch (error) {
+        historyDetail.textContent = `Could not load this analysis: ${error.message}`;
+      }
+    }
+
     function renderFinalProcesses(processes) {
       const rows = [];
       for (let index = 0; index < processes.length; index++) {
@@ -311,12 +602,38 @@
       return makeTable(["Slice", "PID", "Start ms", "End ms", "CPU ms", "CPU"], rows);
     }
 
+    function renderMemoryAnalysis(memory) {
+      const card = makeTextElement("section", "", "card");
+      card.appendChild(makeTextElement("h2", "Memory analysis"));
+      const tiles = makeTextElement("div", "", "tile-grid");
+      addTile(tiles, "Peak process RSS", `${(Number(memory.peak_rss_kb || 0) / 1024).toFixed(2)} MiB`);
+      addTile(tiles, "Samples", memory.sample_count ?? 0);
+      addTile(tiles, "Memory verdict", memory.verdict || "UNKNOWN");
+      card.appendChild(tiles);
+      card.appendChild(makeTextElement("p", memory.reason || "No memory samples were collected."));
+      const chart = createSvgElement("svg", {
+        viewBox: "0 0 700 230",
+        class: "memory-chart",
+        role: "img",
+        "aria-label": "Total resident memory over time"
+      });
+      renderMemoryChart(chart, memoryTimeline, "No memory samples were collected for this run.");
+      card.appendChild(chart);
+      card.appendChild(makeTextElement("p",
+        "The graph estimates process-tree RSS by summing each process's latest sample.",
+        "muted"));
+      return card;
+    }
+
     function metricText(value) {
       return Number.isFinite(Number(value)) ? `${Number(value).toFixed(1)} ms` : "—";
     }
 
     function renderAnalysis(result) {
-      liveCard.hidden = true;
+      document.getElementById("status-badge").className = "badge finished";
+      document.getElementById("status-badge").textContent = "Finished";
+      document.getElementById("live-message").textContent =
+        "Analysis complete. Process, event, and memory details are retained here.";
       resultContainer.hidden = false;
       resultContainer.textContent = "";
       const findings = result.findings || [];
@@ -334,6 +651,8 @@
       addTile(tiles, "CPU %", `${Number(summary.cpu_percent || 0).toFixed(2)}%`);
       addTile(tiles, "Processes", summary.process_count ?? (result.processes || []).length);
       resultContainer.appendChild(tiles);
+
+      resultContainer.appendChild(renderMemoryAnalysis(result.memory_analysis || {}));
 
       const processCard = makeTextElement("section", "", "card");
       processCard.appendChild(makeTextElement("h2", "Process management"));
@@ -367,6 +686,11 @@
       processRows.clear();
       document.getElementById("live-processes").textContent = "";
       document.getElementById("event-log").textContent = "";
+      memoryByPid.clear();
+      memoryTimeline.length = 0;
+      document.getElementById("live-memory-status").textContent =
+        "Waiting for the first memory sample...";
+      updateMemoryChart();
       const badge = document.getElementById("status-badge");
       badge.className = "badge";
       badge.textContent = "Running";
@@ -420,6 +744,7 @@
         });
         const result = await readAnalysisStream(response);
         renderAnalysis(result);
+        await loadHistory();
       } catch (error) {
         showError(error.message);
         liveCard.hidden = true;
@@ -429,6 +754,7 @@
     }
 
     analyzeForm.addEventListener("submit", submitAnalysis);
+    loadHistory();
   </script>
 </body>
 </html>

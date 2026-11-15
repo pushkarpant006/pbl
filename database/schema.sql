@@ -55,6 +55,23 @@ CREATE TABLE IF NOT EXISTS processes (
     memory_usage BIGINT
 );
 
+CREATE TABLE IF NOT EXISTS memory_samples (
+    memory_sample_id BIGSERIAL PRIMARY KEY,
+    session_id INT NOT NULL REFERENCES execution_sessions(session_id) ON DELETE CASCADE,
+    process_id BIGINT NOT NULL REFERENCES processes(process_id) ON DELETE CASCADE,
+    elapsed_ms BIGINT NOT NULL CHECK (elapsed_ms >= 0),
+    rss_kb BIGINT NOT NULL CHECK (rss_kb >= 0),
+    vsize_kb BIGINT NOT NULL CHECK (vsize_kb >= 0),
+    verdict VARCHAR(30) NOT NULL,
+    reason TEXT,
+    sampled_at TIMESTAMP NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS memory_samples_session_elapsed_idx
+    ON memory_samples(session_id, elapsed_ms, memory_sample_id);
+CREATE INDEX IF NOT EXISTS memory_samples_process_id_idx
+    ON memory_samples(process_id);
+
 CREATE TABLE IF NOT EXISTS file_events (
     file_event_id BIGSERIAL PRIMARY KEY,
     session_id INT REFERENCES execution_sessions(session_id),

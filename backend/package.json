@@ -5,12 +5,14 @@
   "description": "Local SafeBox web UI and backend",
   "main": "src/server.js",
   "scripts": {
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "test": "node --test"
   },
   "engines": {
     "node": ">=18"
   },
   "dependencies": {
+    "dotenv": "^18.0.10",
     "express": "^4.21.2",
     "multer": "^2.0.2",
     "pg": "^8.16.3"

@@ -74,13 +74,27 @@ function makeResultRecord(summary, saved, dbError, actions) {
     threat_level: saved ? saved.threat_level : risk.threatLevel,
     slices: summary.slices,
     scheduler_metrics: summary.scheduler_metrics,
+    memory_analysis: summary.memory_analysis,
     findings: summary.findings,
     ...(dbError ? { db_error: dbError } : {})
   };
 }
 
+function formatPersistenceError(error) {
+  const message = error && typeof error.message === "string" && error.message.trim()
+    ? error.message.trim()
+    : "Database operation failed without an error message.";
+  const code = error && typeof error.code === "string" ? ` (PostgreSQL code ${error.code})` : "";
+  const rollbackMessage = error && error.rollbackError &&
+    typeof error.rollbackError.message === "string"
+    ? ` Rollback also failed: ${error.rollbackError.message}`
+    : "";
+  return `${message}${code}${rollbackMessage}`;
+}
+
 async function streamAnalysis(response, programPath, fileInfo, options) {
   const actions = [];
+  const memorySamples = [];
   let summary = null;
   response.status(200);
   response.set("Content-Type", "application/x-ndjson; charset=utf-8");
@@ -95,6 +109,7 @@ async function streamAnalysis(response, programPath, fileInfo, options) {
       function forwardRecord(record) {
         if (record.type === "summary") summary = record;
         if (record.type === "action") actions.push(record);
+        if (record.type === "memory_sample") memorySamples.push(record);
         response.write(`${JSON.stringify(record)}\n`);
       },
       "summary",
@@ -104,10 +119,19 @@ async function streamAnalysis(response, programPath, fileInfo, options) {
     let saved = null;
     let dbError = "";
     try {
-      saved = await persistAnalysis(fileInfo, summary, actions);
+      saved = await persistAnalysis(fileInfo, summary, actions, memorySamples);
     } catch (error) {
-      dbError = error.message;
-      console.error("Could not save SafeBox analysis:", error.message);
+      dbError = formatPersistenceError(error);
+      console.error("Could not save SafeBox analysis:", {
+        message: error && error.message,
+        code: error && error.code,
+        detail: error && error.detail,
+        table: error && error.table,
+        constraint: error && error.constraint,
+        rollbackError: error && error.rollbackError
+          ? formatPersistenceError(error.rollbackError)
+          : undefined
+      });
     }
     response.write(`${JSON.stringify(makeResultRecord(summary, saved, dbError, actions))}\n`);
     response.end();

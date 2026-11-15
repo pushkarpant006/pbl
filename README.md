@@ -3,7 +3,8 @@
 SafeBox is a local Linux process-analysis project. The Node.js website accepts a
 Linux executable or script and asks the C++ analyzer to observe its process
 tree, schedule real processes in user space with Round Robin turns, and report
-process counts, CPU time, timeouts, and scheduler metrics. A separate CLI
+process counts, CPU time, live memory samples, memory-growth verdicts, timeouts,
+and scheduler metrics. A separate CLI
 implements Banker's resource-safety algorithm. PostgreSQL persistence is
 available when a database is configured.
 
@@ -24,25 +25,52 @@ cd backend
 npm start
 ```
 
-Open <http://localhost:3000>. Configure PostgreSQL with `DATABASE_URL` or
-`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD`. Without an
-available database, analysis still runs and the result reports the persistence
-error.
+Open <http://localhost:3000>. The backend loads `backend/.env` automatically;
+configure PostgreSQL with `DATABASE_URL` or `DB_HOST`, `DB_PORT`, `DB_NAME`,
+`DB_USER`, and `DB_PASSWORD`. The server reports whether the database connected
+at startup. Without an available database, analysis still runs and the result
+reports the persistence error.
 
 For a separate terminal, the analyzer can be run directly:
 
 ```bash
 ./build/safebox_analyze ./build/fork_tree --quantum 200 --timeout 15
+./build/safebox_mem --run ./build/memory_hog --interval 100 --json
 ./build/safebox_banker
 ```
 
-The analyzer writes JSON Lines, with its final summary on the last line. The
+The analyzer writes JSON Lines while it runs, including process events, scheduler
+slices, and RSS/virtual-memory samples; its final summary includes peak
+per-process RSS and the memory verdict. The web page keeps the live event log
+visible after completion and plots estimated process-tree RSS over time. The
+standalone memory monitor can also run a program directly as shown above. The
 Banker's CLI prompts for process and resource counts, per-process allocation
 and declared maximum, and currently available resource counts. It checks the
 supplied state; it does not infer resource needs from an uploaded program.
 
-To set up PostgreSQL, set `DB_PASSWORD` and, when required, `DB_ADMIN_PASSWORD`,
-then run `./database/setup.sh`.
+For a hosted PostgreSQL service such as Neon, first create or rotate the
+database credential if it has been shared. Put the provider's connection URL
+in `backend/.env` as `DATABASE_URL=...`. The setup script reads that value
+automatically, applies the schema and seed data, and the backend loads it when
+started:
+
+```bash
+./database/setup.sh
+cd backend
+npm start
+```
+
+Use `sslmode=verify-full` in the URL to preserve the current full certificate
+and hostname verification behavior without the node-postgres SSL-mode warning.
+If you prefer libpq's `require` semantics, use
+`uselibpqcompat=true&sslmode=require` instead.
+
+Do not put database credentials in source files or commit them. `DATABASE_URL`
+mode applies the schema, seed data, and indexes to the existing remote database;
+it does not try to create a database role or database. For a local PostgreSQL
+installation, set `DB_PASSWORD` and, when required, `DB_ADMIN_PASSWORD`, then
+run `./database/setup.sh`. If running the script from `backend/`, use
+`../database/setup.sh`.
 
 ## File guide
 
@@ -136,7 +164,9 @@ a live deadlock detector and is not part of the upload analyzer.
 - `core/src/memory/memory_monitor_main.cpp` runs the standalone memory monitor
   from the command line.
 
-The memory monitor is not currently connected to the website upload flow.
+The upload analyzer samples process memory during a run, streams the samples to
+the website, stores them with the analysis, and displays the saved timeline in
+analysis history.
 
 ### Backend and website
 
@@ -159,26 +189,38 @@ The memory monitor is not currently connected to the website upload flow.
 - `backend/src/services/databaseService.js` creates and exports the PostgreSQL
   connection pool.
 - `backend/src/services/analysisPersistenceService.js` saves sessions,
-  processes, actions, findings, and related records in a database transaction.
+  processes, memory samples, actions, findings, and related records in a
+  database transaction.
 - `backend/src/services/riskService.js` maps findings to risk points and a
   threat level.
+- `backend/src/services/analysisHistoryService.js` reads saved sessions and
+  their associated process, memory, alert, action, environment, and event data.
+- `backend/src/routes/historyRoute.js` exposes `GET /api/history` and
+  `GET /api/history/:sessionId` for the frontend history view.
 - `backend/public/index.html` contains the upload form, live process table,
-  event log, and final CPU and scheduler results.
+  event log, final CPU and scheduler results, and saved-analysis history.
 
 ### Database
 
 - `database/schema.sql` creates SafeBox roles, users, applications, sessions,
-  process, event, policy, alert, action, report, and environment tables.
+  process and memory-sample, event, policy, alert, action, report, and
+  environment tables.
 - `database/seed.sql` inserts the demo user, rule categories, and active
   process-count and timeout rules.
 - `database/setup.sh` creates/configures the database role and database, applies
   the schema and seed, and creates indexes.
 
 File, network, and syscall event tables are prepared in the schema, but their
-event monitors are not implemented.
+event monitors are not implemented, so an analyzer run does not add fabricated
+rows to those tables.
 
 ### Tests
 
+- Run backend persistence and history tests with `npm --prefix backend test`.
+- `backend/test/analysisPersistenceService.test.js` checks transactional
+  persistence of runs, memory samples, and related decision records.
+- `backend/test/analysisHistoryService.test.js` checks that saved run details
+  include the process and memory records used by history.
 - `core/tests/round_robin_test.cpp` checks Round Robin queue order and rotation.
 - `core/tests/scheduler_runner_test.cpp` checks scheduler control of real CPU
   burner processes.
@@ -208,3 +250,6 @@ Run the tests with `ctest --test-dir build --output-on-failure`.
 
 Build test programs with `cmake --build build -j`; the executables appear in
 `build/` and can be selected in the website upload form.
+
+cmake --build build --target safebox_analyze -j
+./build/safebox_analyze ./path/to/program --quantum 200 --timeout 15

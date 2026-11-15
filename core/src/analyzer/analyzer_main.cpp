@@ -8,6 +8,8 @@
 #include "../controller/proc_reader.hpp"
 #include "../controller/process_table.hpp"
 #include "../controller/process_tree.hpp"
+#include "../memory/memory_anomaly_detector.hpp"
+#include "../memory/memory_tracker.hpp"
 #include "../scheduler/round_robin.hpp"
 #include "../scheduler/scheduler_metrics.hpp"
 
@@ -20,6 +22,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <map>
 #include <optional>
 #include <sstream>
 #include <string>
@@ -32,6 +35,7 @@
 
 using namespace std;
 using namespace safebox::controller;
+using namespace safebox::memory;
 using namespace safebox::scheduler;
 
 namespace {
@@ -51,6 +55,13 @@ struct SliceOutcome {
     long cpu_after_ms{0};
     bool alive{true};
     bool timed_out{false};
+};
+
+struct MemoryAnalysis {
+    long peak_rss_kb{0};
+    int sample_count{0};
+    string verdict{"NORMAL"};
+    string reason{"No memory samples were collected."};
 };
 
 long long elapsedMilliseconds(chrono::steady_clock::time_point start) {
@@ -130,6 +141,65 @@ void emitAction(const string& action, pid_t pid, long long time_ms) {
     safebox::analyzer::writeJsonLine(record.str());
 }
 
+// Report measured process memory and the detector's current interpretation.
+void emitMemorySample(const MemorySample& sample, long long time_ms,
+                     const DetectionResult& detection) {
+    ostringstream record;
+    record << "{\"type\":\"memory_sample\",\"pid\":" << sample.pid
+           << ",\"time_ms\":" << time_ms << ",\"rss_kb\":" << sample.rss_kb
+           << ",\"vsize_kb\":" << sample.vsize_kb
+           << ",\"verdict\":\"" << verdictName(detection.verdict)
+           << "\",\"reason\":\"" << safebox::analyzer::escapeJson(detection.reason) << "\"}";
+    safebox::analyzer::writeJsonLine(record.str());
+}
+
+// Keep a short history so growth detection has recent samples without unbounded storage.
+void trimMemoryHistory(vector<MemorySample>& samples) {
+    while (samples.size() > 1 &&
+           samples.back().timestamp - samples.front().timestamp > chrono::seconds(5)) {
+        samples.erase(samples.begin());
+    }
+}
+
+// Prefer the most severe memory finding when summarizing all sampled processes.
+int memoryVerdictRank(const string& verdict) {
+    if (verdict == "LIMIT_EXCEEDED") return 3;
+    if (verdict == "BOMB_SUSPECTED") return 2;
+    if (verdict == "LEAK_SUSPECTED") return 1;
+    return 0;
+}
+
+// Sample the running process and expose read failures instead of hiding them.
+void collectMemorySample(pid_t pid, map<pid_t, vector<MemorySample>>& histories,
+                         MemoryAnomalyDetector& detector, MemoryAnalysis& analysis,
+                         chrono::steady_clock::time_point start) {
+    MemorySample sample{};
+    string error;
+    SampleReadResult result = readSample(pid, sample, error);
+    if (result == SampleReadResult::PROCESS_ENDED) return;
+    long long time_ms = elapsedMilliseconds(start);
+    if (result == SampleReadResult::ERROR) {
+        ostringstream record;
+        record << "{\"type\":\"memory_error\",\"pid\":" << pid << ",\"time_ms\":"
+               << time_ms << ",\"error\":\"" << safebox::analyzer::escapeJson(error) << "\"}";
+        safebox::analyzer::writeJsonLine(record.str());
+        return;
+    }
+    vector<MemorySample>& samples = histories[pid];
+    samples.push_back(sample);
+    trimMemoryHistory(samples);
+    DetectionResult detection = detector.evaluate(samples);
+    if (sample.rss_kb > analysis.peak_rss_kb) analysis.peak_rss_kb = sample.rss_kb;
+    analysis.sample_count++;
+    string sample_verdict = verdictName(detection.verdict);
+    if (memoryVerdictRank(sample_verdict) > memoryVerdictRank(analysis.verdict) ||
+        analysis.verdict == "NORMAL") {
+        analysis.verdict = sample_verdict;
+        analysis.reason = detection.reason;
+    }
+    emitMemorySample(sample, time_ms, detection);
+}
+
 void sleepTenMilliseconds() {
     timespec delay{0, 10000000};
     nanosleep(&delay, nullptr);
@@ -151,7 +221,9 @@ bool beginSlice(pid_t pid, ProcessTable& table, string& error, long long time_ms
 
 void waitForQuantum(pid_t pid, long quantum_ms, long timeout_ms,
                     chrono::steady_clock::time_point start, SliceOutcome& outcome,
-                    string& error) {
+                    string& error, map<pid_t, vector<MemorySample>>& memory_histories,
+                    MemoryAnomalyDetector& memory_detector, MemoryAnalysis& memory_analysis) {
+    long long last_memory_sample_ms = -50;
     while (elapsedMilliseconds(start) - outcome.start_ms < quantum_ms) {
         if (elapsedMilliseconds(start) >= timeout_ms) {
             outcome.timed_out = true;
@@ -168,6 +240,12 @@ void waitForQuantum(pid_t pid, long quantum_ms, long timeout_ms,
             return;
         }
         outcome.cpu_after_ms = info.cpu_ms;
+        long long now_ms = elapsedMilliseconds(start);
+        if (now_ms - last_memory_sample_ms >= 50) {
+            collectMemorySample(pid, memory_histories, memory_detector,
+                                memory_analysis, start);
+            last_memory_sample_ms = now_ms;
+        }
         sleepTenMilliseconds();
     }
 }
@@ -209,7 +287,9 @@ bool finishSlice(SliceOutcome& outcome, ProcessTable& table, Scheduler& schedule
 bool executeSlice(pid_t pid, long quantum_ms, long timeout_ms,
                   chrono::steady_clock::time_point start, ProcessTable& table,
                   Scheduler& scheduler, SchedulerMetrics& metrics, string& error,
-                  SliceOutcome& outcome) {
+                  SliceOutcome& outcome,
+                  map<pid_t, vector<MemorySample>>& memory_histories,
+                  MemoryAnomalyDetector& memory_detector, MemoryAnalysis& memory_analysis) {
     outcome.pid = pid;
     ProcessInfo before{};
     if (!readProcessInfo(pid, before, error)) return false;
@@ -217,7 +297,8 @@ bool executeSlice(pid_t pid, long quantum_ms, long timeout_ms,
     outcome.start_ms = elapsedMilliseconds(start);
     outcome.cpu_before_ms = before.cpu_ms;
     outcome.cpu_after_ms = before.cpu_ms;
-    waitForQuantum(pid, quantum_ms, timeout_ms, start, outcome, error);
+    waitForQuantum(pid, quantum_ms, timeout_ms, start, outcome, error,
+                   memory_histories, memory_detector, memory_analysis);
     if (!pauseAfterSlice(outcome, error)) return false;
     return finishSlice(outcome, table, scheduler, metrics, quantum_ms,
                        elapsedMilliseconds(start));
@@ -328,7 +409,9 @@ bool terminateApplication(pid_t root_pid, ProcessTable& table, Scheduler& schedu
 bool runAnalysis(ProcessTable& table, ProcessTree& tree, Scheduler& scheduler,
                  SchedulerMetrics& metrics, pid_t root_pid, long quantum_ms,
                  long timeout_seconds, chrono::steady_clock::time_point start,
-                 optional<int>& root_status, bool& timed_out) {
+                 optional<int>& root_status, bool& timed_out,
+                 map<pid_t, vector<MemorySample>>& memory_histories,
+                 MemoryAnomalyDetector& memory_detector, MemoryAnalysis& memory_analysis) {
     long timeout_ms = timeout_seconds * 1000;
     while (hasActiveProcesses(table)) {
         long long now_ms = elapsedMilliseconds(start);
@@ -351,7 +434,8 @@ bool runAnalysis(ProcessTable& table, ProcessTree& tree, Scheduler& scheduler,
             SliceOutcome outcome{};
             string error;
             if (!executeSlice(*next_pid, quantum_ms, timeout_ms, start, table,
-                              scheduler, metrics, error, outcome)) {
+                              scheduler, metrics, error, outcome, memory_histories,
+                              memory_detector, memory_analysis)) {
                 cerr << "Could not execute scheduler slice: " << error << "\n";
                 return false;
             }
@@ -467,8 +551,18 @@ void appendFindings(ostringstream& record, const safebox::analyzer::FindingsResu
     record << "]";
 }
 
+// Summarize the observed memory peak and the strongest detector verdict.
+void appendMemoryAnalysis(ostringstream& record, const MemoryAnalysis& memory_analysis) {
+    record << "\"memory_analysis\":{\"peak_rss_kb\":" << memory_analysis.peak_rss_kb
+           << ",\"sample_count\":" << memory_analysis.sample_count
+           << ",\"verdict\":\"" << memory_analysis.verdict
+           << "\",\"reason\":\""
+           << safebox::analyzer::escapeJson(memory_analysis.reason) << "\"}";
+}
+
 void emitSummary(const ProcessTable& table, const SchedulerMetrics& metrics,
-                 long long duration_ms, bool timed_out) {
+                 long long duration_ms, bool timed_out,
+                 const MemoryAnalysis& memory_analysis) {
     safebox::analyzer::FindingsResult findings = safebox::analyzer::buildFindings(
         timed_out, static_cast<int>(table.processes().size()));
     long long total_cpu_ms = 0;
@@ -488,6 +582,8 @@ void emitSummary(const ProcessTable& table, const SchedulerMetrics& metrics,
     appendSlices(record, metrics);
     record << ",";
     appendSchedulerMetrics(record, metrics);
+    record << ",";
+    appendMemoryAnalysis(record, memory_analysis);
     record << ",";
     appendFindings(record, findings);
     record << "}";
@@ -567,16 +663,19 @@ int main(int argc, char** argv) {
     chrono::steady_clock::time_point start = chrono::steady_clock::now();
     optional<int> root_status;
     bool timed_out = false;
+    map<pid_t, vector<MemorySample>> memory_histories;
+    MemoryAnomalyDetector memory_detector;
+    MemoryAnalysis memory_analysis{};
     bool success = runAnalysis(table, tree, scheduler, metrics, launched.pid,
         options.quantum_ms, options.timeout_seconds, start, root_status,
-        timed_out);
+        timed_out, memory_histories, memory_detector, memory_analysis);
     if (!success) {
         killProcessGroup(launched.pid, error);
         waitpid(launched.pid, nullptr, 0);
         removeWorkingDirectory(launched.working_directory);
         return 1;
     }
-    emitSummary(table, metrics, elapsedMilliseconds(start), timed_out);
+    emitSummary(table, metrics, elapsedMilliseconds(start), timed_out, memory_analysis);
     removeWorkingDirectory(launched.working_directory);
     return 0;
 }

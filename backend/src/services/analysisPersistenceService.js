@@ -24,7 +24,17 @@ function findDatabaseProcessId(processIds, pid) {
   return null;
 }
 
-async function insertProcesses(client, sessionId, summary, actions, startedAt) {
+function peakRssBytes(memorySamples, pid) {
+  let peakRssKb = 0;
+  for (let index = 0; index < memorySamples.length; index += 1) {
+    if (memorySamples[index].pid === pid) {
+      peakRssKb = Math.max(peakRssKb, Number(memorySamples[index].rss_kb));
+    }
+  }
+  return peakRssKb * 1024;
+}
+
+async function insertProcesses(client, sessionId, summary, actions, memorySamples, startedAt) {
   const pending = summary.processes.slice();
   const processIds = [];
   while (pending.length > 0) {
@@ -50,7 +60,8 @@ async function insertProcesses(client, sessionId, summary, actions, startedAt) {
          RETURNING process_id`,
         [sessionId, parentProcessId, process.pid, process.name, process.name,
           os.userInfo().username, status, startedAt,
-          status === "RUNNING" ? null : new Date(), process.cpu_ms, null]
+          status === "RUNNING" ? null : new Date(), process.cpu_ms,
+          peakRssBytes(memorySamples, process.pid)]
       );
       processIds.push({ pid: process.pid, processId: result.rows[0].process_id });
       pending.splice(index, 1);
@@ -61,6 +72,43 @@ async function insertProcesses(client, sessionId, summary, actions, startedAt) {
     }
   }
   return processIds;
+}
+
+async function insertMemorySamples(client, sessionId, processIds, memorySamples, startedAt) {
+  const batchSize = 500;
+  for (let batchStart = 0; batchStart < memorySamples.length; batchStart += batchSize) {
+    const batchEnd = Math.min(batchStart + batchSize, memorySamples.length);
+    const values = [];
+    const parameters = [];
+    for (let index = batchStart; index < batchEnd; index += 1) {
+      const sample = memorySamples[index];
+      const processId = findDatabaseProcessId(processIds, sample.pid);
+      if (processId === null) {
+        throw new Error(`Memory sample refers to unrecorded PID ${sample.pid}.`);
+      }
+      const elapsedMs = Number(sample.time_ms);
+      const rssKb = Number(sample.rss_kb);
+      const vsizeKb = Number(sample.vsize_kb);
+      if (!Number.isSafeInteger(elapsedMs) || elapsedMs < 0 ||
+          !Number.isSafeInteger(rssKb) || rssKb < 0 ||
+          !Number.isSafeInteger(vsizeKb) || vsizeKb < 0) {
+        throw new Error(`Memory sample for PID ${sample.pid} contains invalid measurements.`);
+      }
+      const parameterStart = parameters.length + 1;
+      values.push(`($${parameterStart}, $${parameterStart + 1}, $${parameterStart + 2}, ` +
+        `$${parameterStart + 3}, $${parameterStart + 4}, $${parameterStart + 5}, ` +
+        `$${parameterStart + 6}, $${parameterStart + 7})`);
+      parameters.push(sessionId, processId, elapsedMs, rssKb, vsizeKb,
+        sample.verdict, sample.reason || "",
+        new Date(startedAt.getTime() + elapsedMs));
+    }
+    await client.query(
+      `INSERT INTO memory_samples
+        (session_id, process_id, elapsed_ms, rss_kb, vsize_kb, verdict, reason, sampled_at)
+       VALUES ${values.join(", ")}`,
+      parameters
+    );
+  }
 }
 
 async function readMatchedRules(client, findings) {
@@ -167,17 +215,27 @@ async function readSavedAnalysis(client, sessionId) {
     "SELECT * FROM alerts WHERE session_id = $1 ORDER BY alert_id", [sessionId]);
   const actions = await client.query(
     "SELECT * FROM actions_taken WHERE session_id = $1 ORDER BY action_id", [sessionId]);
+  const memorySamples = await client.query(
+    `SELECT memory_sample.*, process_record.pid
+     FROM memory_samples memory_sample
+     JOIN processes process_record ON process_record.process_id = memory_sample.process_id
+     WHERE memory_sample.session_id = $1
+     ORDER BY memory_sample.elapsed_ms, memory_sample.memory_sample_id`,
+    [sessionId]);
   return {
     session: session.rows[0],
     processes: processes.rows,
     alerts: alerts.rows,
-    actions: actions.rows
+    actions: actions.rows,
+    memory_samples: memorySamples.rows
   };
 }
 
-async function persistAnalysis(fileInfo, summary, actions) {
+async function persistAnalysis(fileInfo, summary, actions, memorySamples = []) {
   const client = await pool.connect();
   const startedAt = new Date(Date.now() - summary.duration_ms);
+  let saved = null;
+  let risk = null;
   try {
     await client.query("BEGIN");
     const user = await client.query(
@@ -190,7 +248,7 @@ async function persistAnalysis(fileInfo, summary, actions) {
     );
     const findings = summary.findings || [];
     const matchedRules = await readMatchedRules(client, findings);
-    const risk = calculateRiskScore(matchedRules);
+    risk = calculateRiskScore(matchedRules);
     const root = summary.processes.find(function isRoot(process) {
       return process.parent_pid === 0;
     });
@@ -204,7 +262,9 @@ async function persistAnalysis(fileInfo, summary, actions) {
         root ? root.exit_status : null, risk.riskScore, risk.threatLevel, summary.verdict]
     );
     const sessionId = sessionResult.rows[0].session_id;
-    await insertProcesses(client, sessionId, summary, actions, startedAt);
+    const processIds = await insertProcesses(
+      client, sessionId, summary, actions, memorySamples, startedAt);
+    await insertMemorySamples(client, sessionId, processIds, memorySamples, startedAt);
     await insertHostInformation(client, sessionId);
     await insertAlerts(client, sessionId, findings, matchedRules, actions);
     await insertActions(client, sessionId, actions, findings, startedAt);
@@ -212,23 +272,27 @@ async function persistAnalysis(fileInfo, summary, actions) {
     await client.query(
       `INSERT INTO reports (session_id, generated_at, summary)
        VALUES ($1, CURRENT_TIMESTAMP, $2)`,
-      [sessionId, JSON.stringify(summary)]
+      [sessionId, JSON.stringify({ ...summary, memory_samples: memorySamples })]
     );
+    saved = await readSavedAnalysis(client, sessionId);
     await client.query("COMMIT");
-    const saved = await readSavedAnalysis(client, sessionId);
     for (let index = 0; index < saved.processes.length; index += 1) {
       const analyzedProcess = summary.processes.find(function matchProcess(process) {
         return process.pid === saved.processes[index].pid;
       });
       saved.processes[index].exit_status = analyzedProcess ? analyzedProcess.exit_status : null;
     }
-    return { ...saved, risk_score: risk.riskScore, threat_level: risk.threatLevel };
   } catch (error) {
-    await client.query("ROLLBACK");
+    try {
+      await client.query("ROLLBACK");
+    } catch (rollbackError) {
+      error.rollbackError = rollbackError;
+    }
     throw error;
   } finally {
     client.release();
   }
+  return { ...saved, risk_score: risk.riskScore, threat_level: risk.threatLevel };
 }
 
 module.exports = { persistAnalysis };

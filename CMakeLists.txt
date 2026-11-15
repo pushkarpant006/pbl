@@ -29,6 +29,7 @@ add_executable(safebox_analyze
 target_link_libraries(safebox_analyze PRIVATE
     safebox_process_lib
     safebox_scheduler_lib
+    safebox_memory_lib
 )
 
 add_executable(fork_tree test_programs/fork_tree.cpp)
